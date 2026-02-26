@@ -1,0 +1,433 @@
+// Amanah Institute – Halal Wealth Platform
+// Database schema: users, investing, academy, community, zakat, family
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users & Auth ─────────────────────────────────────────────────────────────
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Onboarding
+  experienceLevel   String?   @map("experience_level") // beginner | intermediate | advanced
+  riskProfile       String?   @map("risk_profile")     // conservative | balanced | growth
+  onboardingPath    String?   @map("onboarding_path")  // business | investing | both
+  onboardingDone    Boolean   @default(false) @map("onboarding_done")
+  goals             String?   // JSON or text
+
+  // Profile
+  phone             String?
+  notificationsOn   Boolean   @default(true) @map("notifications_on")
+  theme             String?   // light | dark (academy/dashboard preference)
+  lastAcademyActivityAt DateTime? @map("last_academy_activity_at")
+  academyStreakDays Int      @default(0) @map("academy_streak_days")
+
+  // Family: parent can have many child accounts
+  parentId          String?   @map("parent_id")
+  parent            User?     @relation("FamilyChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children          User[]   @relation("FamilyChildren")
+
+  // Sub-account permissions when this user is a child
+  familyPermissions String?   @map("family_permissions") // view_only | limited_trade | full (JSON for future)
+
+  // Relations
+  investmentProfile   InvestmentProfile?
+  accounts            Account[]
+  holdings            PortfolioHolding[]
+  transactions        Transaction[]
+  academyProgress     AcademyProgress[]
+  communityPosts      CommunityPost[]
+  communityReplies    CommunityReply[]
+  zakatCalculations   ZakatCalculation[]
+  complianceLogs      ComplianceLog[]
+  familyActivityLogs  FamilyActivityLog[] @relation("ChildActivityLogs")
+  parentActivityLogs  FamilyActivityLog[] @relation("ParentActivityLogs")
+  watchlistItems      WatchlistItem[]
+  orders              Order[]
+  userBadges          UserBadge[]
+  actionResponses     ActionAssignmentResponse[]
+  workspace           Workspace?
+}
+
+// ─── Investing: Risk profile & allocation ─────────────────────────────────────
+model InvestmentProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  riskProfile       String   @map("risk_profile") // conservative | balanced | growth
+  rebalanceLogic    String?  @map("rebalance_logic") // JSON config for auto-allocation
+  updatedAt         DateTime @updatedAt @map("updated_at")
+}
+
+// Account types: holding (cash park), investment (automated), self_directed (trading)
+model Account {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String   // holding | investment | self_directed
+  name              String?  // e.g. "Holding", "Growth Portfolio"
+  currency          String   @default("USD")
+  balanceCents      Int      @default(0) @map("balance_cents")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  holdings          PortfolioHolding[]
+  transactionsFrom  Transaction[] @relation("FromAccount")
+  transactionsTo    Transaction[] @relation("ToAccount")
+  orders            Order[]
+}
+
+model PortfolioHolding {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId         String   @map("account_id")
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  symbol            String   // e.g. AAPL, SPUS (halal ETF)
+  quantity          Decimal  @db.Decimal(20, 6)
+  avgCostCents      Int      @map("avg_cost_cents")
+  source            String   @default("manual") // manual | auto | trade
+  halalStatus       String   @default("approved") @map("halal_status") // approved | purifying | removed
+  dividendPurificationCents Int @default(0) @map("dividend_purification_cents")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([accountId, symbol])
+  @@index([userId])
+  @@index([symbol])
+}
+
+model Transaction {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String   // deposit | withdrawal | transfer | buy | sell | dividend | rebalance
+  fromAccountId     String?  @map("from_account_id")
+  fromAccount       Account? @relation("FromAccount", fields: [fromAccountId], references: [id], onDelete: SetNull)
+  toAccountId       String?  @map("to_account_id")
+  toAccount         Account? @relation("ToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+  amountCents       Int      @map("amount_cents")
+  currency          String   @default("USD")
+  symbol            String?  // for buy/sell
+  quantity          Decimal? @db.Decimal(20, 6)
+  priceCents        Int?     @map("price_cents")
+  status            String   @default("completed") // pending | completed | failed | cancelled
+  metadata          String?  // JSON
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  order             Order?
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Halal-approved symbols (for self-directed and auto)
+model HalalSymbol {
+  id                String   @id @default(cuid())
+  symbol            String   @unique
+  name              String?
+  assetType         String?  @map("asset_type") // stock | etf
+  lastVerifiedAt    DateTime? @map("last_verified_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+}
+
+// Self-directed: watchlist and orders
+model WatchlistItem {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol            String
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, symbol])
+  @@index([userId])
+}
+
+model Order {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId           String    @map("account_id")
+  account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  symbol              String
+  side                String    // buy | sell
+  orderType           String    @map("order_type") // market | limit
+  quantity            Decimal   @db.Decimal(20, 6)
+  limitPriceCents     Int?      @map("limit_price_cents")
+  status              String    @default("pending") // pending | completed | cancelled
+  executionPriceCents  Int?      @map("execution_price_cents")
+  executionQuantity    Decimal?  @db.Decimal(20, 6) @map("execution_quantity")
+  transactionId        String?   @unique @map("transaction_id")
+  transaction         Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  completedAt         DateTime? @map("completed_at")
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+// ─── Business Academy ────────────────────────────────────────────────────────
+model AcademyModule {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  title             String
+  description       String?
+  orderIndex        Int      @map("order_index")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  lessons           AcademyLesson[]
+}
+
+model AcademyLesson {
+  id                     String   @id @default(cuid())
+  moduleId               String   @map("module_id")
+  module                 AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  slug                   String
+  title                  String
+  description            String?
+  content                String?  // markdown
+  durationMinutes        Int?     @map("duration_minutes")
+  orderIndex             Int      @map("order_index")
+  templateUrl            String?  @map("template_url")
+  actionAssignmentSchema String?  @map("action_assignment_schema") // JSON: [{ key, label, type, placeholder }]
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  progress               AcademyProgress[]
+  actionResponses        ActionAssignmentResponse[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId])
+}
+
+model AcademyProgress {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId          String   @map("lesson_id")
+  lesson            AcademyLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt       DateTime? @map("completed_at")
+  progressPercent   Int      @default(0) @map("progress_percent")
+  lastActivityAt    DateTime? @map("last_activity_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  icon        String?  // emoji or icon name
+  type        String   // completion | streak | milestone | excellence
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String   @map("badge_id")
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+model ActionAssignmentResponse {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId   String   @map("lesson_id")
+  lesson     AcademyLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  responses  String   // JSON object: { fieldKey: value }
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+// ─── Community ───────────────────────────────────────────────────────────────
+model CommunityChannel {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  description       String?
+  type              String   // business | investing | accountability | announcements
+  level             String?  // beginner | advanced | null for general
+  orderIndex        Int      @default(0) @map("order_index")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  posts             CommunityPost[]
+}
+
+model CommunityPost {
+  id                String   @id @default(cuid())
+  channelId         String   @map("channel_id")
+  channel           CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId             String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String?
+  body              String
+  isPinned          Boolean  @default(false) @map("is_pinned")
+  isLocked          Boolean  @default(false) @map("is_locked")
+  status            String   @default("visible") // visible | hidden | removed
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  replies           CommunityReply[]
+}
+
+model CommunityReply {
+  id                String   @id @default(cuid())
+  postId            String   @map("post_id")
+  post              CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body              String
+  status            String   @default("visible")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([postId])
+}
+
+// ─── Zakat ───────────────────────────────────────────────────────────────────
+model ZakatCalculation {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year              Int
+  nisabCents        Int      @map("nisab_cents")
+  eligibleCents     Int      @map("eligible_cents")
+  zakatDueCents     Int      @map("zakat_due_cents")
+  assetBreakdown    String?  @map("asset_breakdown") // JSON
+  dividendPurificationCents Int @default(0) @map("dividend_purification_cents")
+  status            String   @default("draft") // draft | final
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, year])
+  @@index([userId])
+}
+
+// ─── Compliance & Audit ─────────────────────────────────────────────────────
+model ComplianceLog {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action            String   // e.g. stock_removed_non_compliant, rebalance, purification
+  symbol            String?
+  details           String?  // JSON
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── Family Accounts ─────────────────────────────────────────────────────────
+model FamilyActivityLog {
+  id                String   @id @default(cuid())
+  parentId          String   @map("parent_id")
+  parent            User     @relation("ParentActivityLogs", fields: [parentId], references: [id], onDelete: Cascade)
+  childId           String   @map("child_id")
+  child             User     @relation("ChildActivityLogs", fields: [childId], references: [id], onDelete: Cascade)
+  action            String
+  details           String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([parentId])
+  @@index([childId])
+}
+
+// ─── Dashboard: Market feed & news (sentiment: neutral | positive | negative) ─
+model MarketFeedItem {
+  id           String   @id @default(cuid())
+  symbol       String?  // optional; null = general market
+  title        String
+  summary      String?
+  sentiment    String   // neutral | positive | negative
+  source       String?
+  url          String?
+  relatedSymbols String? @map("related_symbols") // JSON array of symbols
+  publishedAt  DateTime @map("published_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([symbol])
+  @@index([publishedAt])
+  @@index([sentiment])
+}
+
+// ─── Academy: New topic ~3x/week, varies by user path ─────────────────────────
+model AcademyTopic {
+  id          String   @id @default(cuid())
+  title       String
+  summary     String?
+  path        String   // business | investing | both
+  link        String?  // optional URL or lesson slug
+  publishedAt DateTime @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([path])
+  @@index([publishedAt])
+}
+
+// ─── Academy: New tools release announcements ─────────────────────────────────
+model ToolRelease {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String?  // e.g. content | design | analytics
+  url         String?
+  releasedAt  DateTime @map("released_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([releasedAt])
+}
+
+// ─── Workspace: User's company creation (logo, campaigns, branding) ───────────
+model Workspace {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName       String?  @map("company_name")
+  logoUrl           String?  @map("logo_url")
+  brandingSettings  String?  @map("branding_settings") // JSON: colors, fonts, etc.
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  projects          WorkspaceProject[]
+}
+
+model WorkspaceProject {
+  id          String   @id @default(cuid())
+  workspaceId String  @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  type        String   // logo | ad_campaign | branding | mockup
+  status      String   @default("draft") // draft | in_progress | completed
+  metadata    String?  // JSON: config, assets, etc.
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([workspaceId])
+}

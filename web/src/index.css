@@ -1,0 +1,368 @@
+:root {
+  --bg-dark: #0d1117;
+  --bg-panel: #161b22;
+  --bg-elevated: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --green: #3fb950;
+  --green-dim: #238636;
+  --red: #f85149;
+  --red-dim: #da3633;
+  --accent: #58a6ff;
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, select {
+  font-family: inherit;
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr 320px;
+  grid-template-rows: 48px 1fr 200px;
+  height: 100vh;
+}
+
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.sidebar-left {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.chart-area {
+  background: var(--bg-dark);
+  min-height: 0;
+}
+
+.panel-right {
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.bottom-panel {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  overflow: auto;
+}
+
+.symbol-search {
+  width: 280px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.symbol-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.timeframe-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.timeframe-btn:hover {
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
+.timeframe-btn.active {
+  color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 12px 12px 8px;
+}
+
+.watchlist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.watchlist-item:hover {
+  background: var(--bg-elevated);
+}
+
+.watchlist-item.active {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--green);
+}
+
+.order-form {
+  padding: 16px;
+}
+
+.order-form .row {
+  margin-bottom: 12px;
+}
+
+.order-form label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.order-form input, .order-form select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.order-form .btn-buy, .order-form .btn-sell {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.order-form .btn-buy {
+  background: var(--green-dim);
+  color: white;
+}
+
+.order-form .btn-buy:hover {
+  background: var(--green);
+}
+
+.order-form .btn-sell {
+  background: var(--red-dim);
+  color: white;
+}
+
+.order-form .btn-sell:hover {
+  background: var(--red);
+}
+
+.quote-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.quote-header .symbol {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.quote-header .price {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.quote-header .price.up { color: var(--green); }
+.quote-header .price.down { color: var(--red); }
+
+.quote-header .change {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.pos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.pos-table th, .pos-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.pos-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.error-msg {
+  color: var(--red);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.success-msg {
+  color: var(--green);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.login-banner {
+  grid-column: 1 / -1;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  margin: 16px;
+  border-radius: 8px;
+}
+
+.login-banner a {
+  color: var(--accent);
+}
+
+.chart-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.chart-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.topbar {
+  position: relative;
+}
+
+.timeframes {
+  display: flex;
+  gap: 2px;
+}
+
+.topbar-balance {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.btn-logout {
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.btn-logout:hover {
+  background: var(--border);
+}
+
+.symbol-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  width: 280px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.symbol-dropdown-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.symbol-dropdown-item:hover {
+  background: var(--bg-panel);
+}
+
+.symbol-dropdown-item .sym {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.symbol-dropdown-item .name {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.watchlist-remove, .watchlist-add {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0 4px;
+  font-size: 16px;
+}
+
+.watchlist-remove:hover, .watchlist-add:hover {
+  color: var(--text);
+}
+
+.link-symbol {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.link-symbol:hover {
+  text-decoration: underline;
+}
