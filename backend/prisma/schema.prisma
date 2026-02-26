@@ -26,6 +26,13 @@ model User {
   onboardingDone    Boolean   @default(false) @map("onboarding_done")
   goals             String?   // JSON or text
 
+  // Academy: pathway & income direction (for dashboard "building something")
+  pathway           String?   // starter | builder | scaler
+  incomeGoalMonthlyCents Int? @map("income_goal_monthly_cents")
+  incomeGoalPeriodMonths Int? @map("income_goal_period_months") // e.g. 6
+  currentStage      String?   @map("current_stage")   // pre_revenue | first_offer | first_client | revenue_1k | systemized
+  currentMilestone  String?   @map("current_milestone") // e.g. "First Offer Built"
+
   // Profile
   phone             String?
   notificationsOn   Boolean   @default(true) @map("notifications_on")
@@ -58,6 +65,7 @@ model User {
   userBadges          UserBadge[]
   actionResponses     ActionAssignmentResponse[]
   workspace           Workspace?
+  builderCheckIns     BuilderCheckIn[]
 }
 
 // ─── Investing: Risk profile & allocation ─────────────────────────────────────
@@ -263,6 +271,22 @@ model ActionAssignmentResponse {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+// ─── Academy: Weekly builder check-in (accountability) ────────────────────────
+model BuilderCheckIn {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStartDate   DateTime @map("week_start_date") // Monday of week
+  actionTaken     Boolean  @map("action_taken")
+  hoursCommitted  Int?     @map("hours_committed") // minutes or hours; clarify in API
+  revenueCents    Int?     @map("revenue_cents")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, weekStartDate])
   @@index([userId])
 }
 

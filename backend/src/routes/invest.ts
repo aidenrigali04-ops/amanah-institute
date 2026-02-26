@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { body, param, query, validationResult } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay } from "../services/marketData.js";
+import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay, getCompanyInsights } from "../services/marketData.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -301,6 +301,22 @@ router.get(
     const halalSet = new Set(halal.map((h) => h.symbol.toUpperCase()));
     const gainers = await getTopGainersDay(20, halalSet);
     res.json({ period, items: gainers });
+  }
+);
+
+/** GET /invest/market/:symbol/news – company news, press releases, SEC filings, analyst reports (halal symbols only) */
+router.get(
+  "/market/:symbol/news",
+  param("symbol").trim().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const symbol = (req.params.symbol as string).toUpperCase();
+    const halal = await prisma.halalSymbol.findUnique({ where: { symbol } });
+    if (!halal) {
+      res.status(400).json({ error: "Symbol not in halal-approved list." });
+      return;
+    }
+    const news = await getCompanyInsights(symbol);
+    res.json({ symbol, items: news });
   }
 );
 

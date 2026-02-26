@@ -4,33 +4,60 @@ Halal wealth platform: Business Academy, Investing (automated + self-directed), 
 
 Target: ages 15–35. Tone: modern, clean, disciplined, wealth-focused.
 
-**Deployment stack: Vercel (frontend) + Railway (backend + PostgreSQL).**
+**Deployment:** Backend + DB on **Railway** · Frontend on **Vercel**
+
+**Repo layout:** all backend code in **`backend/`**, all frontend code in **`frontend/`**.
 
 ---
 
 ## Tech stack
 
-| Layer        | Tech |
-|-------------|------|
-| **Backend** | Node.js, TypeScript, Express, Prisma |
-| **Database**| PostgreSQL (Railway Postgres or any Postgres) |
-| **Deploy**  | **Railway** (API + DB) |
-| **Frontend**| Deploy to **Vercel** when ready (set `API_URL` to Railway API) |
-| **Auth**    | JWT (Bearer token) |
+| Layer     | Tech |
+|----------|------|
+| Backend  | Node.js, TypeScript, Express, Prisma (in `backend/`) |
+| Database | PostgreSQL (Railway or any Postgres) |
+| Auth     | JWT (Bearer token) |
+| Frontend | React, Vite, TypeScript (in `frontend/`) |
 
 ---
 
-## Local setup
+# Backend
+
+API and database live in **`backend/`**. Deploy to **Railway** (set Root Directory to `backend`).
+
+## Backend structure
+
+```
+backend/
+├── prisma/
+│   ├── schema.prisma      # Models, migrations
+│   ├── seed.ts            # Academy, channels, halal symbols, feed/topics/tools
+│   └── migrations/
+├── src/
+│   ├── index.ts           # Express app, route mounting
+│   ├── config.ts
+│   ├── lib/prisma.ts
+│   ├── middleware/auth.ts
+│   ├── routes/            # auth, onboarding, dashboard, academy, invest, community, zakat, profile, workspace
+│   ├── services/          # marketData, academyStreak
+│   └── types/
+├── package.json
+├── prisma.config.ts
+└── railway.toml
+```
+
+## Backend setup
 
 1. **Install**
    ```bash
+   cd backend
    npm install
    ```
 
 2. **Database**
-   - Create a PostgreSQL database and set `DATABASE_URL` in `.env` (see `.env.example`).
-   - Apply migrations and seed:
+   - Create a PostgreSQL database. In `backend/`, copy `.env.example` to `.env` and set `DATABASE_URL` and `JWT_SECRET`. (If you had a `.env` at repo root before the split, copy it to `backend/.env`.)
    ```bash
+   cd backend
    cp .env.example .env
    # Edit .env: DATABASE_URL, JWT_SECRET
    npx prisma migrate deploy
@@ -39,45 +66,30 @@ Target: ages 15–35. Tone: modern, clean, disciplined, wealth-focused.
 
 3. **Run**
    ```bash
+   cd backend
    npm run dev
    ```
-   API: `http://localhost:4000`
+   API: **http://localhost:4000**
 
----
+## Backend scripts
 
-## Deploy to Railway (backend + database)
+| Command              | Purpose |
+|----------------------|--------|
+| `npm run dev`        | Start API with watch |
+| `npm run build`      | Prisma generate + TypeScript build |
+| `npm start`          | Production server (migrate + node) |
+| `npm run db:push`    | Push schema (no migration files) |
+| `npm run db:migrate` | Create/apply migrations (dev) |
+| `npm run db:seed`    | Seed academy, channels, halal symbols, topics, tools, feed |
+| `npm run db:studio`  | Prisma Studio |
 
-1. **Railway**
-   - Create a project at [railway.app](https://railway.app).
-   - Add **PostgreSQL** (one-click); copy `DATABASE_URL` into your API service.
-   - New service: deploy from this repo (GitHub connect). Railway uses `railway.toml` for build/start.
+## Backend deploy (Railway)
 
-2. **Env on Railway**
-   - `DATABASE_URL` – from the Postgres plugin (reference or copy).
-   - `JWT_SECRET` – generate a strong secret for production.
-
-3. **Deploy**
-   - Push to your connected branch. Railway will:
-     - **Build:** `npm run build` (runs `prisma generate` + `tsc`)
-     - **Start:** `npx prisma migrate deploy && node dist/index.js`
-   - After first deploy, run seed once (Railway CLI or one-off job):  
-     `npx prisma db seed`
-
-4. **API URL**
-   - Use the generated Railway URL (e.g. `https://your-app.up.railway.app`) as your frontend’s `API_URL` / `NEXT_PUBLIC_API_URL` / `VITE_API_URL`.
-
----
-
-## Deploy frontend to Vercel
-
-When you add a frontend (e.g. Next.js, Vite, or Remix in this repo or another):
-
-1. Create a Vercel project and connect the repo (or the frontend subfolder).
-2. Set env:
-   - `NEXT_PUBLIC_API_URL` or `VITE_API_URL` = your Railway API URL (e.g. `https://your-app.up.railway.app`).
-3. Deploy. All API calls should go to the Railway backend.
-
----
+1. Create a project at [railway.app](https://railway.app); add **PostgreSQL** and copy `DATABASE_URL`.
+2. New service from this repo; set **Root Directory** to `backend`. Set env: `DATABASE_URL`, `JWT_SECRET`.
+3. Railway uses `backend/railway.toml`: build `npm run build`, start `npx prisma migrate deploy && node dist/index.js`.
+4. After first deploy, run seed once from `backend/`: `npx prisma db seed`.
+5. Use the Railway URL as the frontend’s API base (e.g. `VITE_API_URL`).
 
 ## API overview
 
@@ -85,70 +97,86 @@ When you add a frontend (e.g. Next.js, Vite, or Remix in this repo or another):
 |-----------|-----------|--------|
 | Auth      | `POST /api/auth/register`, `POST /api/auth/login` | Returns `user` + `token` |
 | Onboarding| `GET/POST /api/onboarding` | Path: business \| investing \| both |
-| Dashboard | `GET /api/dashboard` | Net worth, accounts, activity, **market feed preview**, **top gainers**, **academy topic**, **tool releases**, **workspace** link; `GET /api/dashboard/feed?limit=` full feed (watchlist first, then recommended; sentiment: neutral/positive/negative) |
-| Academy   | `GET /api/academy/dashboard`, `GET /api/academy/topics` (by path), `GET /api/academy/tool-releases`, `GET /api/academy/test` (placeholder), modules, lessons, progress, action, badges | Topics ~3x/week by path; new tools announcements; Test my knowledge (coming soon) |
-| Invest    | …; **top gainers**: `GET /api/invest/market/top-gainers?period=1d\|1wk\|1mo` (halal-filtered); market quote/ohlc/feed/quotes/search | |
-| Workspace | `GET /api/workspace`, `PATCH /api/workspace`, `GET /api/workspace/projects`, `POST /api/workspace/projects`, `PATCH .../projects/:id` | User’s company workspace: company name, logo, branding; projects (logo, ad_campaign, branding, mockup). Future: Meta/Canva-style UI. |
-| Community | `GET /api/community/channels`, `GET/POST .../channels/:id/posts`, `GET /api/community/posts/:id`, `POST .../posts/:id/replies` | |
-| Zakat     | `GET /api/zakat`, `POST /api/zakat/calculate`, `GET /api/zakat/history`, `GET /api/zakat/report/:year` | |
-| Profile   | `GET /api/profile`, `PATCH /api/profile`, `GET /api/profile/family`, `POST /api/profile/family/invite`, `GET /api/profile/family/activity` | |
+| Dashboard | `GET /api/dashboard` | Net worth, accounts, activity, market feed preview, top gainers, academy topic, tool releases, workspace link; `GET /api/dashboard/feed?limit=` full feed (watchlist → recommended; sentiment) |
+| Academy   | **`GET /api/academy/home`** (Academy Homepage Dashboard: pathway badge, progress bar, primary action, income goal, next actions, modules, builder insights, templates, accountability, community, workspace link); `GET /api/academy/dashboard` (legacy); `POST /api/academy/check-in` (weekly builder check-in); topics, tool-releases, test, modules, lessons, progress, action, badges | |
+| Invest    | Accounts, profile, deposit, transfer, holdings, watchlist, orders; market: quote, ohlc, feed, quotes, search, **top-gainers** (`?period=1d\|1wk\|1mo`) | |
+| Workspace | `GET/PATCH /api/workspace`, `GET/POST/PATCH /api/workspace/projects` | Company name, logo, branding; projects (logo, ad_campaign, branding, mockup) |
+| Community | Channels, posts, replies | |
+| Zakat     | Calculate, history, report | |
+| Profile   | Profile, family, theme; **PATCH** supports `pathway`, `incomeGoalMonthlyCents`, `incomeGoalPeriodMonths`, `currentStage`, `currentMilestone` (academy home) | |
 
 Protected routes: `Authorization: Bearer <token>`.
 
----
-
 ## Database (Prisma + PostgreSQL)
 
-- **Users** – auth, onboarding (experience level, risk profile, path), profile, family (parent/child).
+- **Users** – auth, onboarding (experience, risk, path), profile, family.
 - **Accounts** – holding, investment, self_directed; balances in cents.
-- **PortfolioHoldings** – per-account positions; dividend purification.
-- **Transactions** – deposits, withdrawals, transfers, trades.
-- **Academy** – modules → lessons; progress per user/lesson; **AcademyTopic** (new topic by path), **ToolRelease** (new tools).
-- **Dashboard feed** – **MarketFeedItem** (news/updates with sentiment); feed API merges watchlist quotes + feed items.
-- **Workspace** – **Workspace** (per user: company name, logo, branding JSON), **WorkspaceProject** (logo, ad_campaign, branding, mockup).
+- **PortfolioHoldings**, **Transactions** – positions, trades.
+- **Academy** – modules → lessons; progress; **AcademyTopic**, **ToolRelease**.
+- **MarketFeedItem** – news/updates with sentiment.
+- **Workspace**, **WorkspaceProject** – company workspace, logo, campaigns, branding.
 - **Community** – channels, posts, replies.
-- **Zakat** – one calculation per user per year.
-- **Family** – parent/child links, permissions, activity log.
+- **Zakat** – calculations per user per year.
+- **Family** – parent/child, activity log.
 
 ---
 
-## Scripts
+# Frontend
 
-| Command           | Purpose |
-|-------------------|--------|
-| `npm run dev`     | Start API with watch |
-| `npm run build`   | Prisma generate + TypeScript build |
-| `npm start`       | Run production server |
-| `npm run db:push` | Push schema (no migration files) |
-| `npm run db:migrate` | Create/apply migrations (dev) |
-| `npm run db:seed` | Seed academy, channels, halal symbols |
-| `npm run db:studio` | Prisma Studio |
+React + Vite app in the **`frontend/`** folder. Deploy to **Vercel**.
 
----
+## Frontend structure
 
-## Self-directed trading UI (TradingView-style)
-
-A TradingView-style trading experience lives in the `web/` frontend:
-
-- **Chart**: TradingView **Lightweight Charts** (candlesticks), fed by backend market data (Yahoo Finance).
-- **Layout**: Top bar (symbol search, timeframes 1D–1Y, balance), left sidebar (watchlist, add halal symbols), main chart area, right panel (order entry: buy/sell, quantity, price, place order), bottom (positions + recent orders).
-- **Execution**: Market orders use last price from `GET /api/invest/market/:symbol/quote`; buy/sell hit `POST /api/invest/orders/buy` and `POST /api/invest/orders/sell` for immediate execution.
-
-Run the API and the web app:
-
-```bash
-# Terminal 1 – API
-npm run dev
-
-# Terminal 2 – Web (proxies /api to localhost:4000)
-cd web && npm run dev
+```
+frontend/
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx           # Routes: /login, /academy, /academy/lessons/:id, /trade
+│   ├── api.ts            # API client (auth, dashboard, academy, invest, profile)
+│   ├── index.css         # Theme, layout
+│   ├── pages/
+│   │   ├── Login.tsx
+│   │   ├── AcademyDashboard.tsx
+│   │   ├── LessonViewer.tsx
+│   │   └── Trade.tsx     # TradingView-style trading
+│   ├── components/
+│   └── vite-env.d.ts
+├── index.html
+├── package.json
+├── vite.config.ts        # Proxy /api → backend (e.g. localhost:4000)
+└── tsconfig.json
 ```
 
-Open **http://localhost:3000** → sign in. Default landing is **Amanah Wealth Academy**; use the header to switch to **Trade**.
+## Frontend setup
 
-**Amanah Wealth Academy** (same web app, routes `/academy` and `/academy/lessons/:id`):
-- **Dashboard**: Overall progress %, learning streak, badges count, “Continue Learning” card, learning paths with per-lesson progress, recent achievements, light/dark theme toggle.
-- **Lesson viewer**: Markdown content, **Action Assignments** (saved per field), Mark as complete, Previous/Next lesson.
-- **Backend**: Streak and last-activity updated when viewing/updating lessons; action responses stored per user/lesson; badges seeded (award logic can be extended later).
+1. **Backend must be running** (e.g. `cd backend && npm run dev`).
+2. **Install and run**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   App: **http://localhost:3000** (Vite proxies `/api` to the backend).
 
-Run **seed** to get the first Business Foundations lesson (“Building a Company With Direction”) with full content and a 5-field Action Assignment (Business Sentence, Target Market, Pain Point, UVP, Revenue Model).
+## Frontend scripts
+
+| Command         | Purpose |
+|-----------------|--------|
+| `npm run dev`   | Dev server (port 3000) |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+
+## Frontend deploy (Vercel)
+
+1. Create a Vercel project; connect this repo and set **Root Directory** to `frontend` (or set build to `cd frontend && npm run build` if using repo root).
+2. Set env: `VITE_API_URL` = your Railway API URL (e.g. `https://your-app.up.railway.app`).
+3. Deploy. All `/api` requests from the app should target the backend.
+
+## Frontend features
+
+- **Login** – Email/password; JWT stored in `localStorage`.
+- **Academy** (`/academy`) – Dashboard with progress %, streak, badges, “Continue Learning”, learning paths, theme toggle. Lesson viewer with markdown and Action Assignments.
+- **Trade** (`/trade`) – TradingView-style: symbol search, timeframes, Lightweight Charts, watchlist, order entry (buy/sell), positions, recent orders. Halal symbols only.
+- **Default route** – After login, redirects to `/academy`.
+
+Run **seed** on the backend to get the first Business Foundations lesson (“Building a Company With Direction”) with full content and a 5-field Action Assignment.

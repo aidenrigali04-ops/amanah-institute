@@ -146,6 +146,10 @@ async function main() {
     { slug: "streak_30", name: "Monthly Champion", description: "30-day learning streak", icon: "⭐", type: "streak" },
     { slug: "path_foundations", name: "Business Foundations", description: "Completed Business Foundations path", icon: "📚", type: "milestone" },
     { slug: "action_builder", name: "Action Builder", description: "Completed your first Action Assignment", icon: "✍️", type: "excellence" },
+    { slug: "first_offer_created", name: "First Offer Created", description: "Built your first offer", icon: "📦", type: "milestone" },
+    { slug: "first_client_closed", name: "First Client Closed", description: "Landed your first client", icon: "🤝", type: "milestone" },
+    { slug: "revenue_milestone", name: "Revenue Milestone Hit", description: "Hit your first revenue milestone", icon: "💰", type: "milestone" },
+    { slug: "system_built", name: "System Built", description: "Documented and systemized a process", icon: "⚙️", type: "milestone" },
   ];
   for (const b of BADGES) {
     await prisma.badge.upsert({

@@ -3,7 +3,7 @@ import { query } from "express-validator";
 import { validationResult } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { getQuotes } from "../services/marketData.js";
+import { getQuotes, getCompanyInsightsBatch } from "../services/marketData.js";
 import { getTopGainersDay } from "../services/marketData.js";
 
 const router = Router();
@@ -199,10 +199,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
 });
 
-/** GET /dashboard/feed – Full feed: watchlist updates first, then recommended; neutral/positive/negative sentiment */
+/** GET /dashboard/feed – Full feed: watchlist first, then recommended; includes live company news (press releases, SEC, reports) */
 router.get(
   "/feed",
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  query("live").optional().isIn(["0", "1"]),
   async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -212,6 +213,7 @@ router.get(
     if (!req.user) return;
     const userId = req.user.userId;
     const limit = (req.query.limit as number | undefined) ?? 50;
+    const includeLiveNews = (req.query.live as string | undefined) !== "0";
 
     const [watchlist, halalList, feedItems] = await Promise.all([
       prisma.watchlistItem.findMany({ where: { userId }, select: { symbol: true } }),
@@ -228,7 +230,13 @@ router.get(
     const halalSymbols = halalList.map((h) => h.symbol);
     const recommendedSymbols = halalSymbols.filter((s) => !watchlistSet.has(s.toUpperCase())).slice(0, 20);
 
-    const quotes = await getQuotes([...watchlistSymbols, ...recommendedSymbols]);
+    const symbolsForQuotes = [...watchlistSymbols, ...recommendedSymbols];
+    const quotesPromise = getQuotes(symbolsForQuotes);
+    const liveInsightsPromise = includeLiveNews
+      ? getCompanyInsightsBatch([...watchlistSymbols.slice(0, 4), ...recommendedSymbols.slice(0, 2)], 6)
+      : Promise.resolve({} as Record<string, { id: string; symbol: string; title: string; summary?: string; publishedAt: string; source: string; type: string; sentiment: "neutral" | "positive" | "negative" }[]>);
+
+    const [quotes, liveInsights] = await Promise.all([quotesPromise, liveInsightsPromise]);
 
     type FeedItem = {
       section: "watchlist" | "recommended";
@@ -243,6 +251,7 @@ router.get(
       url?: string;
       source?: string;
       publishedAt: string;
+      newsType?: string;
     };
 
     const items: FeedItem[] = [];
@@ -281,6 +290,24 @@ router.get(
       });
     }
 
+    for (const sym of Object.keys(liveInsights)) {
+      const section = watchlistSet.has(sym.toUpperCase()) ? "watchlist" : "recommended";
+      for (const news of liveInsights[sym]) {
+        items.push({
+          section,
+          type: "news",
+          symbol: news.symbol,
+          name: halalList.find((h) => h.symbol.toUpperCase() === sym)?.name ?? undefined,
+          title: news.title,
+          summary: news.summary,
+          sentiment: news.sentiment,
+          source: news.source,
+          publishedAt: news.publishedAt,
+          newsType: news.type,
+        });
+      }
+    }
+
     for (const sym of recommendedSymbols) {
       const q = quotes[sym];
       if (q) {
@@ -308,6 +335,7 @@ router.get(
         { section: "recommended", items: items.filter((i) => i.section === "recommended").slice(0, limit) },
       ],
       allItems: items.slice(0, limit),
+      liveNewsEnabled: includeLiveNews,
     });
   }
 );

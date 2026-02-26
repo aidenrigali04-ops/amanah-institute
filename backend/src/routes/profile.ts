@@ -25,6 +25,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       notificationsOn: true,
       theme: true,
       academyStreakDays: true,
+      pathway: true,
+      incomeGoalMonthlyCents: true,
+      incomeGoalPeriodMonths: true,
+      currentStage: true,
+      currentMilestone: true,
       createdAt: true,
       parentId: true,
       familyPermissions: true,
@@ -46,6 +51,11 @@ router.patch(
     body("phone").optional().trim(),
     body("notificationsOn").optional().isBoolean(),
     body("theme").optional().isIn(["light", "dark"]),
+    body("pathway").optional().isIn(["starter", "builder", "scaler"]),
+    body("incomeGoalMonthlyCents").optional().isInt({ min: 0 }).toInt(),
+    body("incomeGoalPeriodMonths").optional().isInt({ min: 1, max: 24 }).toInt(),
+    body("currentStage").optional().isIn(["pre_revenue", "first_offer", "first_client", "revenue_1k", "systemized"]),
+    body("currentMilestone").optional().trim(),
   ],
   async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
@@ -54,12 +64,28 @@ router.patch(
       return;
     }
     if (!req.user) return;
-    const { firstName, lastName, phone, notificationsOn, theme } = req.body as {
+    const {
+      firstName,
+      lastName,
+      phone,
+      notificationsOn,
+      theme,
+      pathway,
+      incomeGoalMonthlyCents,
+      incomeGoalPeriodMonths,
+      currentStage,
+      currentMilestone,
+    } = req.body as {
       firstName?: string;
       lastName?: string;
       phone?: string;
       notificationsOn?: boolean;
       theme?: string;
+      pathway?: string;
+      incomeGoalMonthlyCents?: number;
+      incomeGoalPeriodMonths?: number;
+      currentStage?: string;
+      currentMilestone?: string;
     };
     const update: Record<string, unknown> = {};
     if (firstName !== undefined) update.firstName = firstName;
@@ -67,6 +93,11 @@ router.patch(
     if (phone !== undefined) update.phone = phone;
     if (notificationsOn !== undefined) update.notificationsOn = notificationsOn;
     if (theme !== undefined) update.theme = theme;
+    if (pathway !== undefined) update.pathway = pathway;
+    if (incomeGoalMonthlyCents !== undefined) update.incomeGoalMonthlyCents = incomeGoalMonthlyCents;
+    if (incomeGoalPeriodMonths !== undefined) update.incomeGoalPeriodMonths = incomeGoalPeriodMonths;
+    if (currentStage !== undefined) update.currentStage = currentStage;
+    if (currentMilestone !== undefined) update.currentMilestone = currentMilestone;
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
@@ -79,6 +110,11 @@ router.patch(
         phone: true,
         notificationsOn: true,
         theme: true,
+        pathway: true,
+        incomeGoalMonthlyCents: true,
+        incomeGoalPeriodMonths: true,
+        currentStage: true,
+        currentMilestone: true,
       },
     });
     res.json(user);

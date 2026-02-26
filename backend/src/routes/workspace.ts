@@ -163,6 +163,46 @@ router.post(
   }
 );
 
+/** GET /workspace/projects/:projectId – get single project (for full-screen workspace) */
+router.get(
+  "/projects/:projectId",
+  param("projectId").isString().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    if (!req.user) return;
+    const userId = req.user.userId;
+    const projectId = req.params.projectId;
+
+    const workspace = await prisma.workspace.findUnique({ where: { userId } });
+    if (!workspace) {
+      res.status(404).json({ error: "Workspace not found" });
+      return;
+    }
+
+    const project = await prisma.workspaceProject.findFirst({
+      where: { id: projectId, workspaceId: workspace.id },
+    });
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    res.json({
+      id: project.id,
+      name: project.name,
+      type: project.type,
+      status: project.status,
+      metadata: project.metadata ? (JSON.parse(project.metadata) as object) : null,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    });
+  }
+);
+
 /** PATCH /workspace/projects/:projectId – update project */
 router.patch(
   "/projects/:projectId",
@@ -212,6 +252,39 @@ router.patch(
       metadata: updated.metadata ? (JSON.parse(updated.metadata) as object) : null,
       updatedAt: updated.updatedAt,
     });
+  }
+);
+
+/** DELETE /workspace/projects/:projectId – delete project */
+router.delete(
+  "/projects/:projectId",
+  param("projectId").isString().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    if (!req.user) return;
+    const userId = req.user.userId;
+    const projectId = req.params.projectId;
+
+    const workspace = await prisma.workspace.findUnique({ where: { userId } });
+    if (!workspace) {
+      res.status(404).json({ error: "Workspace not found" });
+      return;
+    }
+
+    const project = await prisma.workspaceProject.findFirst({
+      where: { id: projectId, workspaceId: workspace.id },
+    });
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    await prisma.workspaceProject.delete({ where: { id: projectId } });
+    res.status(204).send();
   }
 );
 

@@ -167,3 +167,107 @@ export async function getTopGainersDay(
     return [];
   }
 }
+
+/** Company news/updates from Yahoo Finance insights: press-style headlines (sigDevs), SEC filings, analyst reports */
+export interface CompanyNewsItem {
+  id: string;
+  symbol: string;
+  title: string;
+  summary?: string;
+  publishedAt: string; // ISO
+  source: string;      // e.g. "Significant Development", "SEC Filing", "Argus Research"
+  type: "sigdev" | "sec" | "report";
+  url?: string;
+  sentiment: "neutral" | "positive" | "negative";
+  formType?: string;  // 10-K, 8-K, etc. for SEC
+}
+
+export async function getCompanyInsights(symbol: string): Promise<CompanyNewsItem[]> {
+  const items: CompanyNewsItem[] = [];
+  try {
+    const Y = getYahoo();
+    const data = await Y.insights(symbol) as unknown as {
+      symbol?: string;
+      sigDevs?: { headline?: string; date?: string | Date }[];
+      secReports?: { id?: string; title?: string; description?: string; filingDate?: string; formType?: string }[];
+      reports?: { reportTitle?: string; title?: string; provider?: string; reportDate?: string | Date; headHtml?: string; investmentRating?: string }[];
+    };
+    const sym = (data?.symbol ?? symbol).toUpperCase();
+
+    if (Array.isArray(data?.sigDevs)) {
+      for (const s of data.sigDevs) {
+        if (s?.headline) {
+          const dateVal = s.date;
+          const publishedAt = dateVal instanceof Date ? dateVal.toISOString() : (dateVal ? new Date(dateVal).toISOString() : new Date().toISOString());
+          items.push({
+            id: `sigdev-${sym}-${String(dateVal ?? Date.now())}`,
+            symbol: sym,
+            title: s.headline,
+            publishedAt,
+            source: "Significant Development",
+            type: "sigdev",
+            sentiment: "neutral",
+          });
+        }
+      }
+    }
+
+    if (Array.isArray(data?.secReports)) {
+      for (const r of data.secReports.slice(0, 15)) {
+        const title = r?.title ?? r?.description ?? "SEC Filing";
+        const date = r?.filingDate ? new Date(r.filingDate).toISOString() : new Date().toISOString();
+        items.push({
+          id: `sec-${r?.id ?? Math.random().toString(36).slice(2)}`,
+          symbol: sym,
+          title,
+          summary: r?.description ?? undefined,
+          publishedAt: date,
+          source: "SEC Filing",
+          type: "sec",
+          formType: r?.formType,
+          sentiment: "neutral",
+        });
+      }
+    }
+
+    if (Array.isArray(data?.reports)) {
+      for (const r of data.reports.slice(0, 10)) {
+        const title = r?.reportTitle ?? r?.title ?? (r as { headHtml?: string }).headHtml?.slice(0, 100) ?? "Research Report";
+        const rating = (r as { investmentRating?: string }).investmentRating?.toLowerCase();
+        let sentiment: "neutral" | "positive" | "negative" = "neutral";
+        if (rating?.includes("bull") || rating?.includes("buy")) sentiment = "positive";
+        else if (rating?.includes("bear") || rating?.includes("sell")) sentiment = "negative";
+        const reportDate = r?.reportDate;
+        const publishedAt = reportDate instanceof Date ? reportDate.toISOString() : (reportDate ? new Date(reportDate).toISOString() : new Date().toISOString());
+        items.push({
+          id: `report-${sym}-${String(reportDate ?? Date.now())}`,
+          symbol: sym,
+          title: title.length > 200 ? title.slice(0, 197) + "..." : title,
+          summary: undefined,
+          publishedAt,
+          source: r?.provider ?? "Research",
+          type: "report",
+          sentiment,
+        });
+      }
+    }
+
+    items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    return items.slice(0, 25);
+  } catch {
+    return [];
+  }
+}
+
+/** Batch company insights for multiple symbols (e.g. watchlist). Limits to first 5 symbols to avoid rate limits. */
+export async function getCompanyInsightsBatch(
+  symbols: string[],
+  maxSymbols: number = 5
+): Promise<Record<string, CompanyNewsItem[]>> {
+  const out: Record<string, CompanyNewsItem[]> = {};
+  const limited = symbols.slice(0, maxSymbols);
+  for (const sym of limited) {
+    out[sym] = await getCompanyInsights(sym);
+  }
+  return out;
+}
