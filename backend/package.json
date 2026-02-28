@@ -21,6 +21,9 @@
     "academy"
   ],
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.12"
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },

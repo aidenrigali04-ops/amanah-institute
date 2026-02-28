@@ -32,6 +32,8 @@ Follow these steps to connect your GitHub repo to Railway and Vercel.
      Paste the PostgreSQL connection URL from the Postgres service (or use Railway’s reference variable, e.g. `${{Postgres.DATABASE_URL}}` if you named the DB service "Postgres").
    - **JWT_SECRET**  
      Generate a long random string (e.g. `openssl rand -base64 32`) and paste it.
+   - **NIXPACKS_NODE_VERSION**  
+     Set to **`22`**. Prisma 7 needs Node 20.19+, 22.12+, or 24+; Railpack’s Node 20 is 20.18.x (too old). Node 22 satisfies the requirement.
 6. Save. Railway will redeploy.
 
 ### Step 4: Build and start commands (optional check)
@@ -107,6 +109,7 @@ The backend uses `cors({ origin: true })`, so it accepts requests from any origi
 
 - [ ] Railway: Postgres added and `DATABASE_URL` set on the backend service.
 - [ ] Railway: Backend **Root Directory** = `backend`.
+- [ ] Railway: **NIXPACKS_NODE_VERSION** = **`22`** (so Railpack uses Node 22; required for Prisma 7).
 - [ ] Railway: `JWT_SECRET` set on the backend service.
 - [ ] Railway: Backend has a generated public domain.
 - [ ] Railway: `railway run npx prisma db seed` run once from `backend/`.
