@@ -1,5 +1,11 @@
-/** Base URL for API. In dev with Vite proxy use "" so /api goes to backend. In production set VITE_API_URL to your backend (e.g. Railway) or auth will 404. */
-const API = import.meta.env.VITE_API_URL || "";
+/** Base URL for API. In dev with Vite proxy use "" so /api goes to backend. In production set VITE_API_URL to your backend (e.g. https://your-app.up.railway.app). Must include https:// or it will be treated as a path and hit Vercel (405). */
+function getApiBase(): string {
+  const raw = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  return `https://${raw}`;
+}
+const API = getApiBase();
 
 function getToken(): string | null {
   return localStorage.getItem("amanah_token");

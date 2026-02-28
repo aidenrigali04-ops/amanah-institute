@@ -98,8 +98,8 @@ If you don’t use `railway.toml`, set these in the service **Settings** → **D
    - **Development Command:** `npm run dev` (optional; only used for “Preview” deployments that run the dev server; leave default or leave blank).
 2. Click **Environment Variables** and add:
    - **Name:** `VITE_API_URL`
-   - **Value:** your Railway backend URL from Part 1 (e.g. `https://amanah-institute-backend-production-xxxx.up.railway.app`).  
-   Do **not** add a trailing slash.  
+   - **Value:** your Railway backend **full URL** including `https://` (e.g. `https://amanah-production-e280.up.railway.app`).  
+   Without `https://` the app would treat it as a path and get 405. No trailing slash.  
    **Required:** Without this, login and registration will return **404** because the app will call your Vercel domain instead of the API.
 3. Click **Deploy**. Vercel will build and deploy the frontend. If you add or change `VITE_API_URL` later, **redeploy** (Vite bakes it in at build time).
 
