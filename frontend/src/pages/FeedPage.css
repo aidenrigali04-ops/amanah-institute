@@ -1,0 +1,14 @@
+.feed-page { max-width: 800px; margin: 0 auto; }
+.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.feed-header h1 { margin: 0; font-size: 1.25rem; }
+.feed-back { color: #388e3c; font-weight: 600; text-decoration: none; }
+.feed-back:hover { text-decoration: underline; }
+.feed-section { margin-bottom: 24px; }
+.feed-section h2 { margin: 0 0 12px; font-size: 1rem; color: #333; }
+.feed-list { list-style: none; margin: 0; padding: 0; }
+.feed-list-item { padding: 12px; border: 1px solid #e8f5e9; border-radius: 8px; margin-bottom: 8px; }
+.feed-list-item.sentiment-positive { border-left: 4px solid #388e3c; }
+.feed-list-item.sentiment-negative { border-left: 4px solid #c62828; }
+.feed-list-title { font-weight: 500; }
+.feed-list-summary { display: block; font-size: 0.875rem; color: #666; margin-top: 4px; }
+.feed-list-symbol { font-size: 0.75rem; color: #388e3c; margin-left: 8px; }

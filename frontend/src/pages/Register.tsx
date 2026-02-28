@@ -35,7 +35,7 @@ export default function Register() {
         password,
       });
       localStorage.setItem("amanah_token", token);
-      navigate("/academy", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {

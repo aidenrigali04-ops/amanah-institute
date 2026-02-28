@@ -190,3 +190,47 @@ export async function getProfile() {
   if (!res.ok) throw new Error("Failed to load profile");
   return res.json();
 }
+
+// ─── Dashboard (home overview) ───────────────────────────────────────────────
+export async function getDashboard(params?: { topGainersPeriod?: string }) {
+  const q = params?.topGainersPeriod ? `?topGainersPeriod=${params.topGainersPeriod}` : "";
+  const res = await fetch(`${API}/api/dashboard${q}`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load dashboard");
+  return res.json();
+}
+
+export async function getDashboardFeed(params?: { limit?: number; live?: boolean }) {
+  const sp = new URLSearchParams();
+  if (params?.limit != null) sp.set("limit", String(params.limit));
+  if (params?.live === false) sp.set("live", "0");
+  const q = sp.toString() ? `?${sp}` : "";
+  const res = await fetch(`${API}/api/dashboard/feed${q}`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load feed");
+  return res.json();
+}
+
+// ─── Onboarding (3 questions) ────────────────────────────────────────────────
+export async function getOnboardingStatus() {
+  const res = await fetch(`${API}/api/onboarding/status`, { headers: headers() });
+  if (!res.ok) return { onboardingDone: false };
+  return res.json();
+}
+
+export async function postOnboarding(data: {
+  onboardingPath?: "business" | "investing" | "both";
+  experienceLevel?: "beginner" | "intermediate" | "advanced";
+  riskProfile?: "conservative" | "balanced" | "growth";
+  goals?: string;
+  complete?: boolean;
+}) {
+  const res = await fetch(`${API}/api/onboarding`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || "Failed to save");
+  }
+  return res.json();
+}

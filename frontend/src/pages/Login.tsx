@@ -17,7 +17,7 @@ export default function Login() {
     try {
       const { token } = await login(email, password);
       localStorage.setItem("amanah_token", token);
-      navigate("/academy", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

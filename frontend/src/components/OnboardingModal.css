@@ -1,0 +1,127 @@
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.onboarding-modal {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 440px;
+  width: 100%;
+  padding: 32px;
+  border: 1px solid #c8e6c9;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.onboarding-title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  color: #1a1a1a;
+}
+
+.onboarding-subtitle {
+  margin: 0 0 24px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.onboarding-step {
+  margin-bottom: 24px;
+}
+
+.onboarding-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.onboarding-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.onboarding-option {
+  padding: 12px 18px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.onboarding-option:hover {
+  border-color: #c8e6c9;
+  background: #fafafa;
+}
+
+.onboarding-option.active {
+  border-color: #388e3c;
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+.onboarding-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.onboarding-input:focus {
+  outline: none;
+  border-color: #388e3c;
+  box-shadow: 0 0 0 2px rgba(56, 142, 60, 0.2);
+}
+
+.onboarding-error {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: #b71c1c;
+}
+
+.onboarding-actions {
+  margin-top: 20px;
+}
+
+.onboarding-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.onboarding-btn.primary {
+  background: #388e3c;
+  color: #fff;
+}
+
+.onboarding-btn.primary:hover:not(:disabled) {
+  background: #2e7d32;
+}
+
+.onboarding-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.onboarding-hint {
+  margin: 16px 0 0;
+  font-size: 0.8rem;
+  color: #757575;
+  text-align: center;
+}

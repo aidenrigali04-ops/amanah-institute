@@ -37,7 +37,7 @@ export default function AcademyDashboard() {
         <header className="academy-header">
           <h1>Amanah Wealth Academy</h1>
           <nav>
-            <button type="button" onClick={() => navigate("/trade")}>Trade</button>
+            <button type="button" onClick={() => navigate("/invest")}>Trade</button>
             <button type="button" onClick={() => { localStorage.removeItem("amanah_token"); navigate("/login"); }}>Log out</button>
           </nav>
         </header>
@@ -57,7 +57,7 @@ export default function AcademyDashboard() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
           <nav>
-            <button type="button" onClick={() => navigate("/trade")}>Trade</button>
+            <button type="button" onClick={() => navigate("/invest")}>Trade</button>
             <button type="button" onClick={() => { localStorage.removeItem("amanah_token"); navigate("/login"); }}>Log out</button>
           </nav>
         </div>
