@@ -99,8 +99,9 @@ If you don’t use `railway.toml`, set these in the service **Settings** → **D
 2. Click **Environment Variables** and add:
    - **Name:** `VITE_API_URL`
    - **Value:** your Railway backend URL from Part 1 (e.g. `https://amanah-institute-backend-production-xxxx.up.railway.app`).  
-   Do **not** add a trailing slash.
-3. Click **Deploy**. Vercel will build and deploy the frontend.
+   Do **not** add a trailing slash.  
+   **Required:** Without this, login and registration will return **404** because the app will call your Vercel domain instead of the API.
+3. Click **Deploy**. Vercel will build and deploy the frontend. If you add or change `VITE_API_URL` later, **redeploy** (Vite bakes it in at build time).
 
 ### Step 3: Use the frontend URL
 
@@ -150,6 +151,7 @@ The backend uses `cors({ origin: true })`, so it accepts requests from any origi
 
 ## Troubleshooting
 
+- **Registration failed or Login failed with 404:** The app is not talking to your backend. **On Vercel:** Add **`VITE_API_URL`** (your Railway backend URL, no trailing slash) in Project → Settings → Environment Variables, then redeploy. **Local:** Run the backend on port 4000 and the frontend with `npm run dev` so the proxy works.
 - **Backend 404 / wrong path:** Ensure Railway Root Directory is **backend** and redeploy.
 - **DB connection errors:** Check `DATABASE_URL` on Railway; ensure it’s the Postgres service URL and the backend service can reach it.
 - **Frontend can’t reach API:** Check `VITE_API_URL` in Vercel (no trailing slash); rebuild after changing env vars.

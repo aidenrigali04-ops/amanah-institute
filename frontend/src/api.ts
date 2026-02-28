@@ -1,3 +1,4 @@
+/** Base URL for API. In dev with Vite proxy use "" so /api goes to backend. In production set VITE_API_URL to your backend (e.g. Railway) or auth will 404. */
 const API = import.meta.env.VITE_API_URL || "";
 
 function getToken(): string | null {
@@ -19,6 +20,11 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error(
+        "Login failed: server not reachable (404). If you're on the live site, the API URL may not be set."
+      );
+    }
     const e = await res.json().catch(() => ({}));
     throw new Error(e.error || "Login failed");
   }
@@ -26,12 +32,18 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(data: { email: string; password: string; firstName: string; lastName: string }) {
-  const res = await fetch(`${API}/api/auth/register`, {
+  const url = `${API}/api/auth/register`;
+  const res = await fetch(url, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error(
+        "Registration failed: server not reachable (404). If you're on the live site, the API URL may not be set. Try again or contact support."
+      );
+    }
     const e = await res.json().catch(() => ({}));
     const msg = e.error || (e.errors?.[0]?.msg) || "Registration failed";
     throw new Error(msg);
