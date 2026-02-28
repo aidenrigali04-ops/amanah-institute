@@ -7,6 +7,8 @@ RUN npm ci
 
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
+# prisma generate only needs the schema; config still requires DATABASE_URL. Use a dummy at build time; Railway sets the real one at runtime.
+ENV DATABASE_URL="postgresql://localhost:5432/dummy"
 RUN npx prisma generate
 
 COPY tsconfig.json ./
