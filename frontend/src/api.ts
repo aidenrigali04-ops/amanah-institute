@@ -33,7 +33,8 @@ export async function register(data: { email: string; password: string; firstNam
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || "Registration failed");
+    const msg = e.error || (e.errors?.[0]?.msg) || "Registration failed";
+    throw new Error(msg);
   }
   return res.json();
 }

@@ -4,6 +4,20 @@ Follow these steps to connect your GitHub repo to Railway and Vercel.
 
 ---
 
+## Do I need to add build command, output directory, etc.?
+
+**Vercel:**  
+- Set **Root Directory** to **`frontend`**.  
+- **Build Command**, **Output Directory**, **Install Command**: leave the defaults (Vite sets `npm run build`, `dist`, `npm install`). You don’t need to add them unless you’re overriding.  
+- **Development Command**: optional; only for running the dev server in Preview. You can leave default or blank.
+
+**Railway:**  
+- Set **Root Directory** to **`backend`**.  
+- Add only **DATABASE_URL** and **JWT_SECRET** in Variables.  
+- You do **not** need to add Build Command, Start Command, Output Directory, Install Command, PORT, or NODE_ENV; the Dockerfile (or Nixpacks) and Railway handle these.
+
+---
+
 ## Part 1: Railway (backend + database)
 
 ### Step 1: Create a Railway account and project
@@ -27,14 +41,16 @@ Follow these steps to connect your GitHub repo to Railway and Vercel.
 3. After the service is created, open it and go to **Settings**.
 4. Set **Root Directory** to **`backend`**.  
    This makes Railway build and run only the `backend/` folder.
-5. Under **Variables**, add:
+5. Under **Variables**, add (only these are required):
    - **DATABASE_URL**  
      Paste the PostgreSQL connection URL from the Postgres service (or use Railway’s reference variable, e.g. `${{Postgres.DATABASE_URL}}` if you named the DB service "Postgres").
    - **JWT_SECRET**  
      Generate a long random string (e.g. `openssl rand -base64 32`) and paste it.
    - **NIXPACKS_NODE_VERSION**  
-     Not needed when using the **Dockerfile** (recommended). The repo has `backend/Dockerfile` using Node 22.12.0 (Prisma 7 needs 22.12+; Railpack’s Node 22 is 22.11.x). Railway will use the Dockerfile automatically when Root Directory is `backend`.
-6. Save. Railway will redeploy.
+     Not needed when using the **Dockerfile** (recommended). The repo has `backend/Dockerfile` using Node 22.12.0; Railway uses it when Root Directory is `backend`.
+6. **Other Railway settings you do *not* need to add:**  
+   Railway sets **PORT** automatically; the app reads it. **NODE_ENV** is set by Railway in production. You do not need to configure Build Command or Start Command if the Dockerfile is used (it defines both). No extra settings are required beyond Root Directory and the two variables above.
+7. Save. Railway will redeploy.
 
 ### Step 4: Build and start commands (optional check)
 
@@ -75,11 +91,11 @@ If you don’t use `railway.toml`, set these in the service **Settings** → **D
 
 ### Step 2: Configure the frontend project
 
-1. After selecting the repo, Vercel will detect it. Set:
-   - **Root Directory:** click **Edit** and set to **`frontend`**.
-   - **Framework Preset:** Vite (should be auto-detected).
-   - **Build Command:** `npm run build` (default for Vite).
-   - **Output Directory:** `dist` (default for Vite).
+1. After selecting the repo, set **Root Directory** to **`frontend`** (click **Edit** next to the root path). Vercel will then detect Vite and prefill the rest; you can leave defaults or set explicitly:
+   - **Build Command:** `npm run build` (default; no need to change).
+   - **Output Directory:** `dist` (default; no need to change).
+   - **Install Command:** `npm install` (default; no need to change).
+   - **Development Command:** `npm run dev` (optional; only used for “Preview” deployments that run the dev server; leave default or leave blank).
 2. Click **Environment Variables** and add:
    - **Name:** `VITE_API_URL`
    - **Value:** your Railway backend URL from Part 1 (e.g. `https://amanah-institute-backend-production-xxxx.up.railway.app`).  
