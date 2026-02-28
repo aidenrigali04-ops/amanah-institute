@@ -168,6 +168,52 @@ export async function getTopGainersDay(
   }
 }
 
+/** Top gainers for 3d: compute from historical close (3 days ago vs latest). Uses day_gainers for candidate symbols then historical. */
+export async function getTopGainers3d(
+  count: number = 20,
+  halalSet?: Set<string>
+): Promise<TopGainerRow[]> {
+  try {
+    const dayRows = await getTopGainersDay(Math.max(count, 30), halalSet);
+    const symbols = dayRows.map((r) => r.symbol).slice(0, 20);
+    if (symbols.length === 0) return [];
+    const Y = getYahoo();
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 5);
+    const out: TopGainerRow[] = [];
+    await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          const result = await Y.historical(symbol, { period1: start, period2: end, interval: "1d", events: "history" });
+          const arr = Array.isArray(result) ? result : [];
+          const sorted = arr
+            .filter((q: { close?: number }) => q?.close != null)
+            .sort((a: { date: Date }, b: { date: Date }) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          if (sorted.length < 2) return;
+          const first = sorted[0] as { close: number; date: Date };
+          const last = sorted[sorted.length - 1] as { close: number };
+          const changePercent = first.close ? ((last.close - first.close) / first.close) * 100 : 0;
+          out.push({
+            symbol,
+            price: last.close,
+            changePercent,
+            change: last.close - first.close,
+            previousClose: first.close,
+            currency: "USD",
+          });
+        } catch {
+          // skip symbol
+        }
+      })
+    );
+    out.sort((a, b) => b.changePercent - a.changePercent);
+    return out.slice(0, count);
+  } catch {
+    return [];
+  }
+}
+
 /** Company news/updates from Yahoo Finance insights: press-style headlines (sigDevs), SEC filings, analyst reports */
 export interface CompanyNewsItem {
   id: string;

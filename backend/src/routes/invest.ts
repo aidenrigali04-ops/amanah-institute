@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { body, param, query, validationResult } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay, getCompanyInsights } from "../services/marketData.js";
+import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay, getTopGainers3d, getCompanyInsights } from "../services/marketData.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -291,15 +291,18 @@ router.get(
   }
 );
 
-/** GET /invest/market/top-gainers – top % gainers; period=1d|1wk|1mo (1d from screener; 1wk/1mo filtered halal, same data for now) */
+/** GET /invest/market/top-gainers – top % gainers; period=1h|1d|3d|1wk|1mo (1h/1d from screener; 3d from historical; 1wk/1mo same as 1d for now) */
 router.get(
   "/market/top-gainers",
-  query("period").optional().isIn(["1d", "1wk", "1mo"]),
+  query("period").optional().isIn(["1h", "1d", "3d", "1wk", "1mo"]),
   async (req: Request, res: Response): Promise<void> => {
-    const period = (req.query.period as "1d" | "1wk" | "1mo") ?? "1d";
+    const period = (req.query.period as "1h" | "1d" | "3d" | "1wk" | "1mo") ?? "1d";
     const halal = await prisma.halalSymbol.findMany({ select: { symbol: true } });
     const halalSet = new Set(halal.map((h) => h.symbol.toUpperCase()));
-    const gainers = await getTopGainersDay(20, halalSet);
+    const gainers =
+      period === "3d"
+        ? await getTopGainers3d(20, halalSet)
+        : await getTopGainersDay(20, halalSet);
     res.json({ period, items: gainers });
   }
 );

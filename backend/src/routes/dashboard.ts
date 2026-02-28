@@ -3,16 +3,19 @@ import { query } from "express-validator";
 import { validationResult } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { getQuotes, getCompanyInsightsBatch } from "../services/marketData.js";
-import { getTopGainersDay } from "../services/marketData.js";
+import { getQuotes, getCompanyInsightsBatch, getTopGainersDay, getTopGainers3d } from "../services/marketData.js";
 
 const router = Router();
 router.use(authMiddleware);
 
-/** GET /dashboard – Net worth, accounts, recent activity, next action, market feed preview, top gainers, academy topic, tools, workspace */
-router.get("/", async (req: Request, res: Response): Promise<void> => {
+/** GET /dashboard – Net worth, accounts, recent activity, next action, market feed preview, top gainers (period=1h|1d|3d|1wk|1mo), chat updates, academy topic, tools, workspace */
+router.get(
+  "/",
+  query("topGainersPeriod").optional().isIn(["1h", "1d", "3d", "1wk", "1mo"]),
+  async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;
   const userId = req.user.userId;
+  const topGainersPeriod = (req.query.topGainersPeriod as "1h" | "1d" | "3d" | "1wk" | "1mo") ?? "1d";
 
   const [
     user,
@@ -26,6 +29,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     academyTopics,
     toolReleases,
     workspace,
+    communityPosts,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -79,6 +83,19 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       where: { userId },
       select: { id: true, companyName: true, _count: { select: { projects: true } } },
     }),
+    prisma.communityPost.findMany({
+      where: { status: "visible" },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        createdAt: true,
+        channel: { select: { id: true, slug: true, name: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
   ]);
 
   const path = user?.onboardingPath ?? "both";
@@ -91,7 +108,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   type QuoteMap = Record<string, { price: number; currency: string; previousClose?: number; changePercent?: number } | null>;
   const [watchlistQuotes, topGainers] = await Promise.all([
     watchlistSymbols.length > 0 ? getQuotes(watchlistSymbols) : Promise.resolve({} as QuoteMap),
-    getTopGainersDay(10, halalSet),
+    topGainersPeriod === "3d" ? getTopGainers3d(10, halalSet) : getTopGainersDay(10, halalSet),
   ]);
 
   const marketFeedPreview: { type: "price" | "news"; symbol?: string; title: string; summary?: string; sentiment: "neutral" | "positive" | "negative"; price?: number; changePercent?: number; url?: string; publishedAt: string }[] = [];
@@ -169,8 +186,19 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       feedPageUrl: "/feed",
     },
     topGainers: {
-      period: "1d" as const,
+      period: topGainersPeriod,
       items: topGainers,
+    },
+    chatUpdates: {
+      communityPageUrl: "/community",
+      items: communityPosts.map((p) => ({
+        id: p.id,
+        title: p.title ?? p.body.slice(0, 60) + (p.body.length > 60 ? "..." : ""),
+        excerpt: p.body.slice(0, 120) + (p.body.length > 120 ? "..." : ""),
+        channel: p.channel,
+        author: p.user,
+        createdAt: p.createdAt.toISOString(),
+      })),
     },
     academyTopic: latestTopic
       ? {
@@ -197,7 +225,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       ? { id: workspace.id, companyName: workspace.companyName, hasProjects: workspace._count.projects > 0 }
       : null,
   });
-});
+  }
+);
 
 /** GET /dashboard/feed – Full feed: watchlist first, then recommended; includes live company news (press releases, SEC, reports) */
 router.get(

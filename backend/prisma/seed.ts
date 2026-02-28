@@ -244,7 +244,19 @@ Ensure your business operates within Islamic guidelines in every decision: from 
     skipDuplicates: false,
   });
 
-  console.log("Seed complete: academy modules/lessons, community channels, halal symbols, badges, topics, tools, feed.");
+  const charityCount = await prisma.charityFoundation.count();
+  if (charityCount === 0) {
+    await prisma.charityFoundation.createMany({
+      data: [
+        { name: "Islamic Relief USA", description: "Humanitarian relief and development worldwide.", url: "https://irusa.org", acceptsZakat: true, acceptsSadaqah: true, acceptsSadaqahJariyah: true, orderIndex: 0 },
+        { name: "Zakat Foundation of America", description: "Zakat and sadaqah distribution to those in need.", url: "https://www.zakatfoundation.org", acceptsZakat: true, acceptsSadaqah: true, acceptsSadaqahJariyah: true, orderIndex: 1 },
+        { name: "Penny Appeal USA", description: "Sustainable development and emergency relief.", url: "https://pennyappealusa.org", acceptsZakat: true, acceptsSadaqah: true, acceptsSadaqahJariyah: false, orderIndex: 2 },
+        { name: "Hidaya Foundation", description: "Education and community development projects.", url: "https://hidaya.org", acceptsZakat: true, acceptsSadaqah: true, acceptsSadaqahJariyah: true, orderIndex: 3 },
+      ],
+    });
+  }
+
+  console.log("Seed complete: academy modules/lessons, community channels, halal symbols, badges, topics, tools, feed, charity foundations.");
 }
 
 main()

@@ -118,6 +118,90 @@ router.post(
   }
 );
 
+/** GET /zakat/foundations – list charity foundations (for Zakat, Sadaqah, Sadaqah Jariyah) */
+router.get("/foundations", async (_req: Request, res: Response): Promise<void> => {
+  const foundations = await prisma.charityFoundation.findMany({
+    orderBy: { orderIndex: "asc" },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      url: true,
+      acceptsZakat: true,
+      acceptsSadaqah: true,
+      acceptsSadaqahJariyah: true,
+    },
+  });
+  res.json({ foundations });
+});
+
+/** POST /zakat/donate – record a donation (zakat | sadaqah | sadaqah_jariyah) */
+router.post(
+  "/donate",
+  authMiddleware,
+  [
+    body("foundationId").isString().trim().notEmpty(),
+    body("type").isIn(["zakat", "sadaqah", "sadaqah_jariyah"]),
+    body("amountCents").isInt({ min: 1 }),
+    body("year").optional().isInt({ min: 2000, max: 2100 }).toInt(),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    if (!req.user) return;
+    const { foundationId, type, amountCents, year } = req.body as {
+      foundationId: string;
+      type: "zakat" | "sadaqah" | "sadaqah_jariyah";
+      amountCents: number;
+      year?: number;
+    };
+    const foundation = await prisma.charityFoundation.findUnique({
+      where: { id: foundationId },
+    });
+    if (!foundation) {
+      res.status(404).json({ error: "Foundation not found" });
+      return;
+    }
+    if (type === "zakat" && !foundation.acceptsZakat) {
+      res.status(400).json({ error: "Foundation does not accept Zakat" });
+      return;
+    }
+    if (type === "sadaqah" && !foundation.acceptsSadaqah) {
+      res.status(400).json({ error: "Foundation does not accept Sadaqah" });
+      return;
+    }
+    if (type === "sadaqah_jariyah" && !foundation.acceptsSadaqahJariyah) {
+      res.status(400).json({ error: "Foundation does not accept Sadaqah Jariyah" });
+      return;
+    }
+    const donation = await prisma.donation.create({
+      data: {
+        userId: req.user.userId,
+        foundationId,
+        type,
+        amountCents,
+        year: type === "zakat" ? (year ?? new Date().getFullYear()) : null,
+      },
+      include: { foundation: { select: { id: true, name: true } } },
+    });
+    res.status(201).json(donation);
+  }
+);
+
+/** GET /zakat/donations – list current user's donations */
+router.get("/donations", authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) return;
+  const donations = await prisma.donation.findMany({
+    where: { userId: req.user.userId },
+    orderBy: { createdAt: "desc" },
+    include: { foundation: { select: { id: true, name: true, url: true } } },
+  });
+  res.json({ donations });
+});
+
 /** GET /zakat/history – list past years */
 router.get("/history", async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;

@@ -8,6 +8,8 @@ Target: ages 15–35. Tone: modern, clean, disciplined, wealth-focused.
 
 **Repo layout:** all backend code in **`backend/`**, all frontend code in **`frontend/`**.
 
+**System architecture:** See **[docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md)** for a structured overview of the whole platform (homes, trading, academy, workspace, community, zakat), what’s implemented, and what’s planned.
+
 ---
 
 ## Tech stack
@@ -97,13 +99,13 @@ backend/
 |-----------|-----------|--------|
 | Auth      | `POST /api/auth/register`, `POST /api/auth/login` | Returns `user` + `token` |
 | Onboarding| `GET/POST /api/onboarding` | Path: business \| investing \| both |
-| Dashboard | `GET /api/dashboard` | Net worth, accounts, activity, market feed preview, top gainers, academy topic, tool releases, workspace link; `GET /api/dashboard/feed?limit=` full feed (watchlist → recommended; sentiment) |
-| Academy   | **`GET /api/academy/home`** (Academy Homepage Dashboard: pathway badge, progress bar, primary action, income goal, next actions, modules, builder insights, templates, accountability, community, workspace link); `GET /api/academy/dashboard` (legacy); `POST /api/academy/check-in` (weekly builder check-in); topics, tool-releases, test, modules, lessons, progress, action, badges | |
-| Invest    | Accounts, profile, deposit, transfer, holdings, watchlist, orders; market: quote, ohlc, feed, quotes, search, **top-gainers** (`?period=1d\|1wk\|1mo`) | |
-| Workspace | `GET/PATCH /api/workspace`, `GET/POST/PATCH /api/workspace/projects` | Company name, logo, branding; projects (logo, ad_campaign, branding, mockup) |
-| Community | Channels, posts, replies | |
-| Zakat     | Calculate, history, report | |
-| Profile   | Profile, family, theme; **PATCH** supports `pathway`, `incomeGoalMonthlyCents`, `incomeGoalPeriodMonths`, `currentStage`, `currentMilestone` (academy home) | |
+| Dashboard | `GET /api/dashboard?topGainersPeriod=1h\|1d\|3d\|1wk\|1mo` | Net worth, accounts, activity, market feed preview, **top gainers** (1h/1d/3d/1wk/1mo), **chatUpdates** (community teaser), academy topic, tools, workspace; `GET /api/dashboard/feed` full feed |
+| Academy   | **`GET /api/academy/home`**; `POST /api/academy/check-in`; topics, tool-releases, test, modules, lessons, progress, action, badges | |
+| Invest    | Accounts, profile, deposit, transfer, holdings, watchlist, orders, analytics; market: quote, ohlc, feed, quotes, search, **top-gainers** `?period=1h\|1d\|3d\|1wk\|1mo` | |
+| Workspace | `GET/PATCH /api/workspace`, `GET/POST/PATCH /api/workspace/projects` | |
+| Community | Channels, posts, replies; **conversations** (DMs + collab): `GET/POST /api/community/conversations`, `GET .../conversations/:id`, `POST .../messages`, `POST .../participants` | |
+| Zakat     | `GET /api/zakat`, calculate, history, report; **`GET /api/zakat/foundations`**, **`POST /api/zakat/donate`**, **`GET /api/zakat/donations`** | |
+| Profile   | Profile, family, theme; **PATCH** supports `pathway`, `incomeGoalMonthlyCents`, `currentStage`, `currentMilestone`, **`businessPreferences`** (Q&A JSON) | |
 
 Protected routes: `Authorization: Bearer <token>`.
 

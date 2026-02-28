@@ -30,6 +30,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       incomeGoalPeriodMonths: true,
       currentStage: true,
       currentMilestone: true,
+      businessPreferences: true,
       createdAt: true,
       parentId: true,
       familyPermissions: true,
@@ -39,7 +40,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  res.json(user);
+  const out = { ...user, businessPreferences: user.businessPreferences ? (JSON.parse(user.businessPreferences) as Record<string, unknown>) : null };
+  res.json(out);
 });
 
 /** PATCH /profile – update profile fields */
@@ -56,6 +58,7 @@ router.patch(
     body("incomeGoalPeriodMonths").optional().isInt({ min: 1, max: 24 }).toInt(),
     body("currentStage").optional().isIn(["pre_revenue", "first_offer", "first_client", "revenue_1k", "systemized"]),
     body("currentMilestone").optional().trim(),
+    body("businessPreferences").optional().isObject(),
   ],
   async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
@@ -75,6 +78,7 @@ router.patch(
       incomeGoalPeriodMonths,
       currentStage,
       currentMilestone,
+      businessPreferences,
     } = req.body as {
       firstName?: string;
       lastName?: string;
@@ -86,6 +90,7 @@ router.patch(
       incomeGoalPeriodMonths?: number;
       currentStage?: string;
       currentMilestone?: string;
+      businessPreferences?: Record<string, unknown>;
     };
     const update: Record<string, unknown> = {};
     if (firstName !== undefined) update.firstName = firstName;
@@ -98,6 +103,7 @@ router.patch(
     if (incomeGoalPeriodMonths !== undefined) update.incomeGoalPeriodMonths = incomeGoalPeriodMonths;
     if (currentStage !== undefined) update.currentStage = currentStage;
     if (currentMilestone !== undefined) update.currentMilestone = currentMilestone;
+    if (businessPreferences !== undefined) update.businessPreferences = JSON.stringify(businessPreferences);
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
@@ -115,6 +121,7 @@ router.patch(
         incomeGoalPeriodMonths: true,
         currentStage: true,
         currentMilestone: true,
+        businessPreferences: true,
       },
     });
     res.json(user);
