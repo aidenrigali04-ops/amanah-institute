@@ -13,7 +13,26 @@ import workspaceRoutes from "./routes/workspace.js";
 
 const app = express();
 
-app.use(cors({ origin: true, credentials: true }));
+// CORS: allow Vercel app and localhost; preflight must succeed or browser blocks fetch
+const allowedOrigins = [
+  "https://amanah-institute.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        cb(null, origin || allowedOrigins[0]);
+      } else {
+        cb(null, true);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 // Health
