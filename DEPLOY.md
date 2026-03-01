@@ -115,7 +115,7 @@ If you don’t use `railway.toml`, set these in the service **Settings** → **D
 
 ### Backend CORS
 
-The backend uses `cors({ origin: true })`, so it accepts requests from any origin (including your Vercel URL). For production you can tighten this later in `backend/src/index.ts` to your Vercel domain.
+The backend allows your Vercel origin and localhost; OPTIONS (CORS preflight) is handled first so the browser can complete the request.
 
 ### Frontend API base URL
 
@@ -156,3 +156,4 @@ The backend uses `cors({ origin: true })`, so it accepts requests from any origi
 - **DB connection errors:** Check `DATABASE_URL` on Railway; ensure it’s the Postgres service URL and the backend service can reach it.
 - **Frontend can’t reach API:** Check `VITE_API_URL` in Vercel (no trailing slash); rebuild after changing env vars.
 - **Migrations:** Each deploy runs `npx prisma migrate deploy` before starting the app; for new migrations, push to main and let Railway redeploy.
+- **502 Bad Gateway on OPTIONS /api/auth/register:** Railway’s edge got the request but your backend didn’t respond in time or isn’t running. Check **Railway → your backend service → Deployments / Logs**: ensure the app starts (no crash after `node dist/index.js`), listens on `PORT`, and that `prisma migrate deploy` finishes. If the service is sleeping or slow to start, the first request can 502; retry after the service is warm. The backend now answers OPTIONS immediately to reduce preflight delay.
