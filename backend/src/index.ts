@@ -13,24 +13,32 @@ import workspaceRoutes from "./routes/workspace.js";
 
 const app = express();
 
-// CORS: allow Vercel app and localhost; preflight must succeed or browser blocks fetch
+// CORS: allow Vercel and localhost so browser doesn't block fetch (net::ERR_FAILED)
 const allowedOrigins = [
   "https://amanah-institute.vercel.app",
   "http://localhost:3000",
   "http://localhost:5173",
 ];
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (/\.vercel\.app$/i.test(origin) || /^https?:\/\/localhost(:\d+)?$/i.test(origin)) return true;
+  return false;
+}
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      if (isAllowedOrigin(origin)) {
         cb(null, origin || allowedOrigins[0]);
       } else {
-        cb(null, true);
+        cb(null, allowedOrigins[0]);
       }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
