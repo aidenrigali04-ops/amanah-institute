@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { register as apiRegister } from "../api";
+import { register as apiRegister, checkBackendHealth, getApiUrlForDiagnostics } from "../api";
 import "./Auth.css";
 
 export default function Register() {
@@ -10,6 +10,19 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<"checking" | "ok" | "MISSING_API_URL" | "NETWORK_OR_CORS">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    checkBackendHealth().then((r) => {
+      if (cancelled) return;
+      if (r.ok) setBackendStatus("ok");
+      else setBackendStatus(r.reason);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +71,20 @@ export default function Register() {
           />
         </div>
         <h1 className="auth-title">Create your Account</h1>
+        {backendStatus === "MISSING_API_URL" && (
+          <div className="auth-banner auth-banner--warn" role="alert">
+            <strong>API URL not set.</strong> In Vercel: Project → Settings → Environment Variables → add{" "}
+            <code>VITE_API_URL</code> = your Railway backend URL (e.g. <code>https://xxx.up.railway.app</code>). Then
+            redeploy the frontend.
+          </div>
+        )}
+        {backendStatus === "NETWORK_OR_CORS" && (
+          <div className="auth-banner auth-banner--warn" role="alert">
+            <strong>Backend unreachable.</strong> Check: (1) Railway backend is running and has a public domain, (2) In
+            Vercel, <code>VITE_API_URL</code> = that exact URL, (3) Redeploy frontend after changing it. URL used:{" "}
+            <code>{getApiUrlForDiagnostics()}</code>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
             <label htmlFor="name">Name</label>

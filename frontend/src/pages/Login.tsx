@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../api";
+import { login, checkBackendHealth, getApiUrlForDiagnostics } from "../api";
 import "./Auth.css";
 
 export default function Login() {
@@ -9,6 +9,19 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<"checking" | "ok" | "MISSING_API_URL" | "NETWORK_OR_CORS">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    checkBackendHealth().then((r) => {
+      if (cancelled) return;
+      if (r.ok) setBackendStatus("ok");
+      else setBackendStatus(r.reason);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +53,18 @@ export default function Login() {
           />
         </div>
         <h1 className="auth-title">Log in</h1>
+        {backendStatus === "MISSING_API_URL" && (
+          <div className="auth-banner auth-banner--warn" role="alert">
+            <strong>API URL not set.</strong> In Vercel: add <code>VITE_API_URL</code> = your Railway backend URL, then
+            redeploy.
+          </div>
+        )}
+        {backendStatus === "NETWORK_OR_CORS" && (
+          <div className="auth-banner auth-banner--warn" role="alert">
+            <strong>Backend unreachable.</strong> Check Railway is running and <code>VITE_API_URL</code> in Vercel
+            matches. URL: <code>{getApiUrlForDiagnostics()}</code>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
             <label htmlFor="email">Email</label>

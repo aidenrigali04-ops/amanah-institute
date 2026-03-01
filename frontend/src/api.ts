@@ -7,6 +7,22 @@ function getApiBase(): string {
 }
 const API = getApiBase();
 
+/** Call from auth pages to verify backend is reachable. */
+export async function checkBackendHealth(): Promise<{ ok: true } | { ok: false; reason: "MISSING_API_URL" | "NETWORK_OR_CORS" }> {
+  if (!API) return { ok: false, reason: "MISSING_API_URL" };
+  try {
+    const res = await fetch(`${API}/health`, { method: "GET", cache: "no-store" });
+    if (res.ok) return { ok: true };
+    return { ok: false, reason: "NETWORK_OR_CORS" };
+  } catch {
+    return { ok: false, reason: "NETWORK_OR_CORS" };
+  }
+}
+
+export function getApiUrlForDiagnostics(): string {
+  return API || "(not set – add VITE_API_URL in Vercel)";
+}
+
 function getToken(): string | null {
   return localStorage.getItem("amanah_token");
 }
@@ -57,10 +73,11 @@ export async function register(data: { email: string; password: string; firstNam
       headers: headers(),
       body: JSON.stringify(data),
     });
-  } catch (e) {
-    throw new Error(
-      "Registration failed: cannot reach server (network or CORS). On Vercel, set VITE_API_URL to your Railway URL (e.g. https://your-app.up.railway.app) and redeploy."
-    );
+  } catch {
+    const hint = !API
+      ? "Set VITE_API_URL in Vercel to your Railway URL, then redeploy."
+      : "Check: (1) Railway backend is running and has a public domain, (2) VITE_API_URL in Vercel is that exact URL, (3) Redeploy frontend after changing env.";
+    throw new Error(`Registration failed: cannot reach server. ${hint}`);
   }
   if (!res.ok) {
     if (res.status === 404) {

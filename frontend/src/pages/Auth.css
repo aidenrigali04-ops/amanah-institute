@@ -53,6 +53,28 @@
   text-align: center;
 }
 
+.auth-banner {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  border-radius: 10px;
+  color: #333;
+}
+
+.auth-banner--warn {
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  color: #5d4200;
+}
+
+.auth-banner code {
+  font-size: 0.8em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;
