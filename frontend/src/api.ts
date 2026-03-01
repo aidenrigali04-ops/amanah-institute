@@ -1,4 +1,4 @@
-/** Base URL for API. In dev with Vite proxy use "" so /api goes to backend. In production set VITE_API_URL to your backend (e.g. https://your-app.up.railway.app). Must include https:// or it will be treated as a path and hit Vercel (405). */
+/** Base URL for API. In dev with Vite proxy use "" so /api goes to backend. In production set VITE_API_URL to your backend (e.g. https://your-app.up.railway.app). */
 function getApiBase(): string {
   const raw = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
   if (!raw) return "";
@@ -20,15 +20,26 @@ function headers(): HeadersInit {
 }
 
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API}/api/auth/login`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}/api/auth/login`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new Error(
+      "Login failed: cannot reach server. On Vercel, set VITE_API_URL to your Railway URL and redeploy."
+    );
+  }
   if (!res.ok) {
     if (res.status === 404) {
+      const text = await res.text();
+      const isHtml = /<!doctype html>/i.test(text) || text.trimStart().startsWith("<");
       throw new Error(
-        "Login failed: server not reachable (404). If you're on the live site, the API URL may not be set."
+        isHtml
+          ? "Login failed: request hit wrong server (404). Set VITE_API_URL in Vercel to your Railway URL and redeploy."
+          : "Login failed: server not reachable (404)."
       );
     }
     const e = await res.json().catch(() => ({}));
@@ -39,15 +50,26 @@ export async function login(email: string, password: string) {
 
 export async function register(data: { email: string; password: string; firstName: string; lastName: string }) {
   const url = `${API}/api/auth/register`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify(data),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    throw new Error(
+      "Registration failed: cannot reach server (network or CORS). On Vercel, set VITE_API_URL to your Railway URL (e.g. https://your-app.up.railway.app) and redeploy."
+    );
+  }
   if (!res.ok) {
     if (res.status === 404) {
+      const text = await res.text();
+      const isHtml = /<!doctype html>/i.test(text) || text.trimStart().startsWith("<");
       throw new Error(
-        "Registration failed: server not reachable (404). If you're on the live site, the API URL may not be set. Try again or contact support."
+        isHtml
+          ? "Registration failed: request hit the wrong server (404). In Vercel, add env var VITE_API_URL = your Railway backend URL (e.g. https://amanah-production-e280.up.railway.app), then redeploy."
+          : "Registration failed: server not reachable (404). Set VITE_API_URL in Vercel and redeploy."
       );
     }
     const e = await res.json().catch(() => ({}));
