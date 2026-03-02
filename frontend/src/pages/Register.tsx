@@ -85,9 +85,6 @@ export default function Register() {
             <code>{getApiUrlForDiagnostics()}</code>
           </div>
         )}
-        <p className="auth-api-hint" aria-hidden="true">
-          API: <code>{getApiUrlForDiagnostics()}</code>
-        </p>
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
             <label htmlFor="name">Name</label>
