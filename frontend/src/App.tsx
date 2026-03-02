@@ -3,6 +3,8 @@ import Trade from "./pages/Trade";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AcademyDashboard from "./pages/AcademyDashboard";
+import AcademyOnboarding from "./pages/AcademyOnboarding";
+import TradingOnboarding from "./pages/TradingOnboarding";
 import LessonViewer from "./pages/LessonViewer";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
@@ -25,9 +27,11 @@ function App() {
             <Route path="dashboard" element={<DashboardHome />} />
             <Route path="dashboard/feed" element={<FeedPage />} />
             <Route path="academy" element={<AcademyDashboard />} />
+            <Route path="academy/onboarding" element={<AcademyOnboarding />} />
             <Route path="academy/courses" element={<Placeholder title="All Courses" />} />
             <Route path="academy/lessons/:lessonId" element={<LessonViewer />} />
             <Route path="invest" element={<Trade />} />
+            <Route path="invest/onboarding" element={<TradingOnboarding />} />
             <Route path="invest/automated" element={<Placeholder title="Automated Account" />} />
             <Route path="invest/screener" element={<Placeholder title="Stocks Screener" />} />
             <Route path="invest/analytics" element={<Placeholder title="Analytics" />} />

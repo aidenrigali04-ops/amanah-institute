@@ -292,10 +292,55 @@ export async function getDashboardFeed(params?: { limit?: number; live?: boolean
   return res.json();
 }
 
-// ─── Onboarding (3 questions) ────────────────────────────────────────────────
-export async function getOnboardingStatus() {
+// ─── Onboarding ──────────────────────────────────────────────────────────────
+export async function getOnboardingStatus(): Promise<{
+  onboardingDone?: boolean;
+  academyPersonalized?: boolean;
+  tradingAccountOpened?: boolean;
+  experienceLevel?: string;
+  riskProfile?: string;
+  onboardingPath?: string;
+  goals?: string;
+}> {
   const res = await fetch(`${API}/api/onboarding/status`, { headers: headers() });
-  if (!res.ok) return { onboardingDone: false };
+  if (!res.ok) return { onboardingDone: false, academyPersonalized: false, tradingAccountOpened: false };
+  return res.json();
+}
+
+/** Complete business academy questionnaire; marks academy as personalized. */
+export async function postOnboardingAcademy(data: {
+  experienceLevel?: "beginner" | "intermediate" | "advanced";
+  pathway?: "starter" | "builder" | "scaler";
+  incomeGoalMonthlyCents?: number;
+  incomeGoalPeriodMonths?: number;
+  currentStage?: "pre_revenue" | "first_offer" | "first_client" | "revenue_1k" | "systemized";
+  currentMilestone?: string;
+  businessPreferences?: Record<string, unknown>;
+  goals?: string;
+}) {
+  const res = await fetch(`${API}/api/onboarding/academy`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || e.errors?.[0]?.msg || "Failed to save");
+  }
+  return res.json();
+}
+
+/** Complete trading account questionnaire; creates accounts if needed, marks trading as opened. */
+export async function postOnboardingTrading(data: { riskProfile: "conservative" | "balanced" | "growth" }) {
+  const res = await fetch(`${API}/api/onboarding/trading`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || e.errors?.[0]?.msg || "Failed to save");
+  }
   return res.json();
 }
 

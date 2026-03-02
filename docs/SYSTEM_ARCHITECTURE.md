@@ -45,6 +45,12 @@ The platform has **one main app home** (Dashboard) and **feature-specific homes*
 
 **Implemented:** `GET/POST /api/onboarding`; experience level, risk profile, onboarding path, goals; default account creation.
 
+**Path-specific onboarding (after initial focus choice):**
+- **Academy personalization** — When user clicks “Personalize My Business Academy”: questionnaire at `/academy/onboarding` (experience level, pathway, current stage, income goal, goals). `POST /api/onboarding/academy` saves answers and sets `academyPersonalizedAt`. Once complete → redirect to `/academy`.
+- **Trading account opening** — When user clicks “Open My Trading Account”: questionnaire at `/invest/onboarding` (risk profile). `POST /api/onboarding/trading` ensures holding/investment/self-directed accounts exist, sets risk profile, sets `tradingAccountOpenedAt`. Once complete → redirect to `/invest`.
+
+Dashboard hero CTAs link to onboarding URLs when not yet completed; after completion they link to the feature home.
+
 ---
 
 ## 4. Home Overviews

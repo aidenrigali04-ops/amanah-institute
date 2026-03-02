@@ -40,6 +40,8 @@ model User {
   businessPreferences String?  @map("business_preferences") // JSON: niche, offer, targetMarket, etc. (Q&A for dashboard)
   lastAcademyActivityAt DateTime? @map("last_academy_activity_at")
   academyStreakDays Int      @default(0) @map("academy_streak_days")
+  academyPersonalizedAt   DateTime? @map("academy_personalized_at")   // set when user completes academy onboarding
+  tradingAccountOpenedAt DateTime? @map("trading_account_opened_at")  // set when user completes trading onboarding
 
   // Family: parent can have many child accounts
   parentId          String?   @map("parent_id")

@@ -33,7 +33,7 @@ router.get(
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { onboardingPath: true },
+      select: { onboardingPath: true, academyPersonalizedAt: true, tradingAccountOpenedAt: true },
     }),
     prisma.account.findMany({
       where: { userId },
@@ -164,6 +164,8 @@ router.get(
 
   res.json({
     onboardingPath: path ?? "both",
+    academyPersonalized: !!user?.academyPersonalizedAt,
+    tradingAccountOpened: !!user?.tradingAccountOpenedAt,
     netWorthSnapshot: {
       totalCents: totalNetWorthCents,
       cashCents: netWorthCents,
