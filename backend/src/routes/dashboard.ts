@@ -99,7 +99,7 @@ router.get(
   ]);
 
   const path = user?.onboardingPath ?? "both";
-  const pathFilter = (p: string) => p === "both" || p === path;
+  const pathFilter = (p: string) => p === "both" || p === path || (path === "not_sure" && p === "both");
   const latestTopic = academyTopics.find((t) => pathFilter(t.path)) ?? academyTopics[0] ?? null;
 
   const watchlistSymbols = watchlist.map((w) => w.symbol);
@@ -163,6 +163,7 @@ router.get(
       : { type: "zakat" as const, label: "Calculate Zakat", path: "/zakat" };
 
   res.json({
+    onboardingPath: path ?? "both",
     netWorthSnapshot: {
       totalCents: totalNetWorthCents,
       cashCents: netWorthCents,

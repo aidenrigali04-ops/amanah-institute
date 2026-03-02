@@ -2,28 +2,27 @@ import { useState } from "react";
 import { postOnboarding } from "../api";
 import "./OnboardingModal.css";
 
-type Step = 1 | 2 | 3;
+export type OnboardingPath = "business" | "investing" | "both" | "not_sure";
+
+const PATH_OPTIONS: { value: OnboardingPath; label: string }[] = [
+  { value: "business", label: "Build a Business" },
+  { value: "investing", label: "Trading" },
+  { value: "both", label: "Both" },
+  { value: "not_sure", label: "I'm Not Sure Yet" },
+];
 
 export default function OnboardingModal({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState<Step>(1);
-  const [path, setPath] = useState<"business" | "investing" | "both">("both");
-  const [experience, setExperience] = useState<"beginner" | "intermediate" | "advanced">("beginner");
-  const [goals, setGoals] = useState("");
+  const [path, setPath] = useState<OnboardingPath | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleNext = async () => {
+  const handleSubmit = async () => {
+    if (path == null) return;
     setError(null);
-    if (step < 3) {
-      setStep((s) => (s + 1) as Step);
-      return;
-    }
     setLoading(true);
     try {
       await postOnboarding({
         onboardingPath: path,
-        experienceLevel: experience,
-        goals: goals.trim() || undefined,
         complete: true,
       });
       onComplete();
@@ -35,74 +34,37 @@ export default function OnboardingModal({ onComplete }: { onComplete: () => void
   };
 
   return (
-    <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div className="onboarding-modal">
-        <h1 id="onboarding-title" className="onboarding-title">Welcome to Amanah Institute</h1>
-        <p className="onboarding-subtitle">Three quick questions to personalize your experience.</p>
-
-        {step === 1 && (
-          <div className="onboarding-step">
-            <label className="onboarding-label">What’s your main focus?</label>
-            <div className="onboarding-options">
-              {(["business", "investing", "both"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={`onboarding-option ${path === opt ? "active" : ""}`}
-                  onClick={() => setPath(opt)}
-                >
-                  {opt === "business" && "Business"}
-                  {opt === "investing" && "Investing"}
-                  {opt === "both" && "Both"}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="onboarding-step">
-            <label className="onboarding-label">What’s your experience level?</label>
-            <div className="onboarding-options">
-              {(["beginner", "intermediate", "advanced"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={`onboarding-option ${experience === opt ? "active" : ""}`}
-                  onClick={() => setExperience(opt)}
-                >
-                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="onboarding-step">
-            <label className="onboarding-label">What’s your main goal? (optional)</label>
-            <input
-              type="text"
-              className="onboarding-input"
-              placeholder="e.g. Build a side business, invest halal, save for hajj"
-              value={goals}
-              onChange={(e) => setGoals(e.target.value)}
-            />
-          </div>
-        )}
-
+    <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-question">
+      <div className="onboarding-modal onboarding-modal--focus">
+        <h2 id="onboarding-question" className="onboarding-question">
+          What are you here to focus on?
+        </h2>
+        <ul className="onboarding-option-list" role="listbox" aria-label="Choose your focus">
+          {PATH_OPTIONS.map((opt) => (
+            <li key={opt.value}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={path === opt.value}
+                className={`onboarding-option-item ${path === opt.value ? "active" : ""}`}
+                onClick={() => setPath(opt.value)}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+        </ul>
         {error && <p className="onboarding-error">{error}</p>}
         <div className="onboarding-actions">
           <button
             type="button"
             className="onboarding-btn primary"
-            onClick={handleNext}
-            disabled={loading}
+            onClick={handleSubmit}
+            disabled={loading || path == null}
           >
-            {loading ? "Saving…" : step < 3 ? "Next" : "Get started"}
+            {loading ? "Saving…" : "Continue"}
           </button>
         </div>
-        <p className="onboarding-hint">You can personalize your academy and open a trading account from your dashboard.</p>
       </div>
     </div>
   );

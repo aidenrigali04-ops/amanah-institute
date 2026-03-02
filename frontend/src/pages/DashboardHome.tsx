@@ -3,7 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { getDashboard } from "../api";
 import "./DashboardHome.css";
 
+type OnboardingPath = "business" | "investing" | "both" | "not_sure";
+
 type DashboardData = {
+  onboardingPath?: OnboardingPath;
   marketFeedPreview: { items: { type: string; symbol?: string; title: string; summary?: string; sentiment: string; price?: number; changePercent?: number; publishedAt: string }[]; feedPageUrl: string };
   topGainers: { period: string; items: { symbol: string; shortName?: string; price: number; changePercent: number; currency: string }[] };
   academyTopic: { id: string; title: string; summary?: string; link?: string } | null;
@@ -50,9 +53,38 @@ export default function DashboardHome() {
 
   const feedItems = data.marketFeedPreview?.items ?? [];
   const gainers = data.topGainers?.items ?? [];
+  const path: OnboardingPath = data.onboardingPath ?? "both";
 
   return (
     <div className="dashboard-home">
+      {/* Path-based hero CTAs (images 2–4): trading → Open Trading; business → Personalize Academy; both/not_sure → both */}
+      <section className="dashboard-hero-ctas" aria-label="Next steps based on your focus">
+        {path === "investing" && (
+          <div className="dashboard-hero-single">
+            <button type="button" className="dashboard-hero-btn" onClick={() => navigate("/invest")}>
+              Open My Trading Account
+            </button>
+          </div>
+        )}
+        {path === "business" && (
+          <div className="dashboard-hero-single">
+            <button type="button" className="dashboard-hero-btn" onClick={() => navigate("/academy")}>
+              Personalize My Business Academy
+            </button>
+          </div>
+        )}
+        {(path === "both" || path === "not_sure") && (
+          <div className="dashboard-hero-dual">
+            <button type="button" className="dashboard-hero-btn" onClick={() => navigate("/academy")}>
+              Personalize My Business Academy
+            </button>
+            <button type="button" className="dashboard-hero-btn" onClick={() => navigate("/invest")}>
+              Open My Trading Account
+            </button>
+          </div>
+        )}
+      </section>
+
       <div className="dashboard-cards">
         {/* Row 1: Market News + Top Gainers */}
         <section className="dashboard-panel panel-wide">
@@ -191,23 +223,6 @@ export default function DashboardHome() {
         </section>
       </div>
 
-      {/* In-dashboard onboarding CTAs */}
-      <section className="dashboard-onboarding-ctas">
-        <div className="onboarding-cta-card highlight">
-          <h3>Personalize my academy</h3>
-          <p>Recommended for the best experience. Set your path, goals, and see a tailored dashboard.</p>
-          <button type="button" className="panel-cta-btn" onClick={() => navigate("/academy")}>
-            Personalize Academy
-          </button>
-        </div>
-        <div className="onboarding-cta-card">
-          <h3>Open trading account</h3>
-          <p>Fund your account and start trading halal-compliant stocks.</p>
-          <button type="button" className="panel-cta-btn outline" onClick={() => navigate("/invest")}>
-            Open Trading Account
-          </button>
-        </div>
-      </section>
     </div>
   );
 }

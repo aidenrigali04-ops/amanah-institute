@@ -6,7 +6,7 @@ import { prisma } from "../lib/prisma.js";
 const router = Router();
 router.use(authMiddleware);
 
-const VALID_PATHS = ["business", "investing", "both"];
+const VALID_PATHS = ["business", "investing", "both", "not_sure"];
 const VALID_LEVELS = ["beginner", "intermediate", "advanced"];
 const VALID_RISK = ["conservative", "balanced", "growth"];
 
@@ -29,6 +29,7 @@ router.get("/status", async (req: Request, res: Response): Promise<void> => {
   res.json(user);
 });
 
+/** POST /onboarding – Save onboarding answers. All provided fields are persisted per user; dashboard uses them for personalization. */
 router.post(
   "/",
   [
@@ -61,8 +62,8 @@ router.post(
     if (goals != null) update.goals = goals;
     if (complete === true) {
       update.onboardingDone = true;
-      // Create default accounts for investing path
-      if (onboardingPath === "investing" || onboardingPath === "both") {
+      // Create default accounts for investing path (and not_sure so they can explore both)
+      if (onboardingPath === "investing" || onboardingPath === "both" || onboardingPath === "not_sure") {
         const existing = await prisma.account.count({ where: { userId: req.user.userId } });
         if (existing === 0) {
           await prisma.account.createMany({

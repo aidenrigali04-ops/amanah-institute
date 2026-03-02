@@ -5,6 +5,35 @@
   margin: 0 auto;
 }
 
+/* Path-based hero CTAs (onboarding → platform configuration) */
+.dashboard-hero-ctas {
+  margin-bottom: 28px;
+}
+
+.dashboard-hero-single,
+.dashboard-hero-dual {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.dashboard-hero-btn {
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  background: #2e7d32;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dashboard-hero-btn:hover {
+  background: #1b5e20;
+}
+
 .dashboard-loading,
 .dashboard-error {
   text-align: center;

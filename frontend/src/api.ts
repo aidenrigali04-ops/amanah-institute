@@ -249,6 +249,31 @@ export async function getProfile() {
   return res.json();
 }
 
+/** Update profile; all fields optional. Saves user feedback and preferences so dashboard stays in sync. */
+export async function updateProfile(data: {
+  firstName?: string;
+  lastName?: string;
+  theme?: "light" | "dark";
+  pathway?: "starter" | "builder" | "scaler";
+  experienceLevel?: "beginner" | "intermediate" | "advanced";
+  riskProfile?: "conservative" | "balanced" | "growth";
+  onboardingPath?: "business" | "investing" | "both" | "not_sure";
+  goals?: string;
+  businessPreferences?: Record<string, unknown>;
+  incomeGoalMonthlyCents?: number;
+  incomeGoalPeriodMonths?: number;
+  currentStage?: string;
+  currentMilestone?: string;
+}) {
+  const res = await fetch(`${API}/api/profile`, {
+    method: "PATCH",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+  return res.json();
+}
+
 // ─── Dashboard (home overview) ───────────────────────────────────────────────
 export async function getDashboard(params?: { topGainersPeriod?: string }) {
   const q = params?.topGainersPeriod ? `?topGainersPeriod=${params.topGainersPeriod}` : "";
@@ -275,7 +300,7 @@ export async function getOnboardingStatus() {
 }
 
 export async function postOnboarding(data: {
-  onboardingPath?: "business" | "investing" | "both";
+  onboardingPath?: "business" | "investing" | "both" | "not_sure";
   experienceLevel?: "beginner" | "intermediate" | "advanced";
   riskProfile?: "conservative" | "balanced" | "growth";
   goals?: string;

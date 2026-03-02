@@ -59,6 +59,10 @@ router.patch(
     body("currentStage").optional().isIn(["pre_revenue", "first_offer", "first_client", "revenue_1k", "systemized"]),
     body("currentMilestone").optional().trim(),
     body("businessPreferences").optional().isObject(),
+    body("experienceLevel").optional().isIn(["beginner", "intermediate", "advanced"]),
+    body("riskProfile").optional().isIn(["conservative", "balanced", "growth"]),
+    body("onboardingPath").optional().isIn(["business", "investing", "both", "not_sure"]),
+    body("goals").optional().isString(),
   ],
   async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
@@ -79,6 +83,10 @@ router.patch(
       currentStage,
       currentMilestone,
       businessPreferences,
+      experienceLevel,
+      riskProfile,
+      onboardingPath,
+      goals,
     } = req.body as {
       firstName?: string;
       lastName?: string;
@@ -91,6 +99,10 @@ router.patch(
       currentStage?: string;
       currentMilestone?: string;
       businessPreferences?: Record<string, unknown>;
+      experienceLevel?: string;
+      riskProfile?: string;
+      onboardingPath?: string;
+      goals?: string;
     };
     const update: Record<string, unknown> = {};
     if (firstName !== undefined) update.firstName = firstName;
@@ -104,6 +116,10 @@ router.patch(
     if (currentStage !== undefined) update.currentStage = currentStage;
     if (currentMilestone !== undefined) update.currentMilestone = currentMilestone;
     if (businessPreferences !== undefined) update.businessPreferences = JSON.stringify(businessPreferences);
+    if (experienceLevel !== undefined) update.experienceLevel = experienceLevel;
+    if (riskProfile !== undefined) update.riskProfile = riskProfile;
+    if (onboardingPath !== undefined) update.onboardingPath = onboardingPath;
+    if (goals !== undefined) update.goals = goals;
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
@@ -122,9 +138,14 @@ router.patch(
         currentStage: true,
         currentMilestone: true,
         businessPreferences: true,
+        experienceLevel: true,
+        riskProfile: true,
+        onboardingPath: true,
+        goals: true,
       },
     });
-    res.json(user);
+    const out = { ...user, businessPreferences: user.businessPreferences ? (JSON.parse(user.businessPreferences) as Record<string, unknown>) : null };
+    res.json(out);
   }
 );
 
