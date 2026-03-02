@@ -33,10 +33,12 @@ function formatNum(n: number | null): string {
   return n.toLocaleString();
 }
 
-export default function StockDetail() {
-  const { ticker } = useParams<{ ticker: string }>();
+type StockDetailProps = { defaultTicker?: string };
+
+export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps) {
+  const { ticker: paramTicker } = useParams<{ ticker?: string }>();
   const navigate = useNavigate();
-  const symbol = (ticker ?? "").toUpperCase();
+  const symbol = (paramTicker ?? defaultTicker ?? "AAPL").toUpperCase();
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof getStockDetail>> | null>(null);
   const [ohlcData, setOhlcData] = useState<CandlestickData[]>([]);
   const [tfIndex, setTfIndex] = useState(0);
@@ -188,7 +190,7 @@ export default function StockDetail() {
   if (!symbol) {
     return (
       <div className="stock-detail">
-        <p className="stock-detail-error">Missing symbol.</p>
+        <p className="stock-detail-error">No symbol selected. <Link to="/invest">Go to My Account</Link> or <Link to="/invest/trade">Market</Link>.</p>
       </div>
     );
   }

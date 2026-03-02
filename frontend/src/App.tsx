@@ -35,7 +35,7 @@ function App() {
             <Route path="invest" element={<TradingPortfolio />} />
             <Route path="invest/onboarding" element={<TradingOnboarding />} />
             <Route path="invest/stock/:ticker" element={<StockDetail />} />
-            <Route path="invest/trade" element={<Trade />} />
+            <Route path="invest/trade" element={<StockDetail defaultTicker="AAPL" />} />
             <Route path="invest/transactions" element={<Placeholder title="Transactions" />} />
             <Route path="invest/automated" element={<Placeholder title="Automated Account" />} />
             <Route path="invest/screener" element={<Placeholder title="Stocks Screener" />} />
