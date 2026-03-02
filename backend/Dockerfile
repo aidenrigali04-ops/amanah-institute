@@ -20,7 +20,8 @@ COPY src ./src/
 RUN npm run build
 
 ENV NODE_ENV=production
-EXPOSE 4000
+# Must match PORT Railway sets (e.g. 8080); EXPOSE 4000 caused proxy to forward to 4000 while app listened on 8080
+EXPOSE 8080
 COPY start.sh ./
 RUN chmod +x start.sh
 CMD ["./start.sh"]
