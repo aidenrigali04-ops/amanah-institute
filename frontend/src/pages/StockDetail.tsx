@@ -24,6 +24,10 @@ const TIMEFRAMES = [
   { label: "5Y", interval: "1d", range: "5y" },
 ];
 
+const TABS = ["Chart", "Statistics", "Analyst", "Earnings", "Insider", "Financials", "Peer"] as const;
+
+const TRANSACTION_FEE_USD = 5;
+
 function formatNum(n: number | null): string {
   if (n == null) return "—";
   if (n >= 1e12) return (n / 1e12).toFixed(2) + "T";
@@ -33,20 +37,94 @@ function formatNum(n: number | null): string {
   return n.toLocaleString();
 }
 
+type DetailShape = Awaited<ReturnType<typeof getStockDetail>> & {
+  capitalization?: {
+    marketCap: number | null;
+    netLiability: number | null;
+    tev: number | null;
+    commonEquity: number | null;
+    totalLiabilities: number | null;
+    totalCapital: number | null;
+  };
+};
+
+function emptyDetail(symbol: string): DetailShape {
+  return {
+    symbol,
+    quote: { price: 0, currency: "USD", changePercent: 0, previousClose: 0 },
+    companyName: symbol,
+    exchange: "—",
+    complianceBadge: "Under Review",
+    marketSnapshot: {
+      marketCap: null,
+      fiftyTwoWeekHigh: null,
+      fiftyTwoWeekLow: null,
+      averageVolume: null,
+      beta: null,
+      trailingPE: null,
+      revenueGrowthPercent: null,
+      rsiLabel: "Neutral",
+      volumeTrend: "Stable",
+      earningsTrend: "Flat",
+    },
+    sentimentScore: { bullishPercent: 33, neutralPercent: 34, bearishPercent: 33 },
+    sentimentShift: null,
+    topHeadlines: [],
+    shariaCompliance: {
+      compliant: false,
+      lastScreeningDate: null,
+      complianceSafetyScore: "Not screened",
+      debtRatioPercent: null,
+      haramRevenuePercent: null,
+      nearThresholdWarning: false,
+    },
+    capitalization: {
+      marketCap: null,
+      netLiability: null,
+      tev: null,
+      commonEquity: null,
+      totalLiabilities: null,
+      totalCapital: null,
+    },
+  };
+}
+
+/** Placeholder order book rows around current price */
+function placeholderOrderBook(price: number): { price: number; amount: number; side: "bid" | "ask" }[] {
+  const rows: { price: number; amount: number; side: "bid" | "ask" }[] = [];
+  const step = 0.05;
+  for (let i = 4; i >= 1; i--) {
+    rows.push({ price: Math.round((price + step * i) * 100) / 100, amount: 500 + i * 700, side: "ask" });
+  }
+  for (let i = 1; i <= 4; i++) {
+    rows.push({ price: Math.round((price - step * i) * 100) / 100, amount: 1000 + i * 500, side: "bid" });
+  }
+  return rows;
+}
+
+const PLACEHOLDER_PEERS = [
+  { symbol: "TSLA", name: "Tesla", revenueGrowth: 8.4, change: 1.24 },
+  { symbol: "RIVN", name: "Rivian", revenueGrowth: 12.3, change: 2.15 },
+  { symbol: "NVDA", name: "NVIDIA", revenueGrowth: 4.15, change: 0.85 },
+  { symbol: "ABM", name: "ABM Industries", revenueGrowth: 6.75, change: 0.95 },
+];
+
 type StockDetailProps = { defaultTicker?: string };
 
 export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps) {
   const { ticker: paramTicker } = useParams<{ ticker?: string }>();
   const navigate = useNavigate();
   const symbol = (paramTicker ?? defaultTicker ?? "AAPL").toUpperCase();
-  const [detail, setDetail] = useState<Awaited<ReturnType<typeof getStockDetail>> | null>(null);
+  const [detail, setDetail] = useState<DetailShape | null>(null);
   const [ohlcData, setOhlcData] = useState<CandlestickData[]>([]);
   const [tfIndex, setTfIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Chart");
   const [watchlist, setWatchlist] = useState<{ symbol: string }[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; type: string; name: string | null; balanceCents: number }[]>([]);
   const [portfolioValueCents, setPortfolioValueCents] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [balancePercent, setBalancePercent] = useState(19);
 
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
@@ -71,10 +149,15 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
   useEffect(() => {
     if (!symbol) return;
     setLoading(true);
-    setError(null);
+    setDataError(null);
     getStockDetail(symbol)
-      .then(setDetail)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .then((d) => {
+        setDetail({ ...d, capitalization: (d as DetailShape).capitalization ?? emptyDetail(symbol).capitalization });
+      })
+      .catch((e) => {
+        setDetail(emptyDetail(symbol));
+        setDataError(e instanceof Error ? e.message : "Could not load live data. Showing placeholder.");
+      })
       .finally(() => setLoading(false));
   }, [symbol]);
 
@@ -195,10 +278,10 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
     );
   }
 
-  if (loading || error) {
+  if (loading && !detail) {
     return (
       <div className="stock-detail">
-        <div className="stock-detail-loading">{loading ? "Loading…" : error}</div>
+        <div className="stock-detail-loading">Loading stock data…</div>
       </div>
     );
   }
@@ -207,10 +290,22 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
 
   const changePercent = detail.quote.changePercent ?? 0;
   const changePositive = changePercent >= 0;
+  const cap = detail.capitalization ?? emptyDetail(symbol).capitalization!;
+  const orderBookRows = placeholderOrderBook(price);
+  const investmentTotalFromSlider = Math.round((balanceCents / 100) * (balancePercent / 100) * 100) / 100;
+  const buyPrice = orderType === "market" ? price : (parseFloat(limitPrice || "0") || price);
+  const qtyNum = inputMode === "shares" ? parseFloat(quantity || "0") : price > 0 ? (parseFloat(dollarAmount || "0") / price) : 0;
+  const totalFromOrder = Math.round(qtyNum * buyPrice * 100) / 100;
 
   return (
     <div className="stock-detail">
-      {/* 1. Stock Identity Header */}
+      {dataError && (
+        <div className="stock-data-error" role="alert">
+          {dataError}
+        </div>
+      )}
+
+      {/* 1. Stock Identity Header + Tabs */}
       <header className="stock-header">
         <button type="button" className="stock-back" onClick={() => navigate("/invest")} aria-label="Back">
           ←
@@ -225,6 +320,18 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
             </span>
           </div>
         </div>
+        <nav className="stock-tabs" aria-label="Data views">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={`stock-tab-btn ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
         <span className="stock-badge">{detail.complianceBadge}</span>
         <button
           type="button"
@@ -237,152 +344,242 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
         </button>
       </header>
 
-      {/* 2. Chart */}
-      <section className="stock-chart-section">
-        <div className="stock-chart-toggles">
-          {TIMEFRAMES.map((t, i) => (
-            <button
-              key={t.label}
-              type="button"
-              className={`stock-tf-btn ${i === tfIndex ? "active" : ""}`}
-              onClick={() => setTfIndex(i)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <div className="stock-chart-container" ref={chartContainerRef} />
-      </section>
-
-      {/* 3. Market Snapshot + 4. Sentiment + 5. Sharia (grid below chart) */}
-      <div className="stock-panels">
-        <section className="stock-panel stock-snapshot">
-          <h2 className="stock-panel-title">Market Snapshot</h2>
-          <dl className="stock-dl">
-            <div><dt>Market Cap</dt><dd>{formatNum(detail.marketSnapshot.marketCap)}</dd></div>
-            <div><dt>52W High / Low</dt><dd>{detail.marketSnapshot.fiftyTwoWeekHigh != null ? `$${detail.marketSnapshot.fiftyTwoWeekHigh.toFixed(2)}` : "—"} / {detail.marketSnapshot.fiftyTwoWeekLow != null ? `$${detail.marketSnapshot.fiftyTwoWeekLow.toFixed(2)}` : "—"}</dd></div>
-            <div><dt>Avg Volume</dt><dd>{formatNum(detail.marketSnapshot.averageVolume)}</dd></div>
-            <div><dt>Beta</dt><dd>{detail.marketSnapshot.beta != null ? detail.marketSnapshot.beta.toFixed(2) : "—"}</dd></div>
-            <div><dt>RSI</dt><dd>{detail.marketSnapshot.rsiLabel}</dd></div>
-            <div><dt>Volume trend</dt><dd>{detail.marketSnapshot.volumeTrend}</dd></div>
-            <div><dt>P/E</dt><dd>{detail.marketSnapshot.trailingPE != null ? detail.marketSnapshot.trailingPE.toFixed(2) : "—"}</dd></div>
-            <div><dt>Revenue growth</dt><dd>{detail.marketSnapshot.revenueGrowthPercent != null ? `${detail.marketSnapshot.revenueGrowthPercent}%` : "—"}</dd></div>
-            <div><dt>Earnings trend</dt><dd>{detail.marketSnapshot.earningsTrend}</dd></div>
-          </dl>
-        </section>
-
-        <section className="stock-panel stock-sentiment">
-          <h2 className="stock-panel-title">Sentiment & News</h2>
-          <div className="stock-sentiment-bars">
-            <span className="sentiment positive">Bullish {detail.sentimentScore.bullishPercent}%</span>
-            <span className="sentiment neutral">Neutral {detail.sentimentScore.neutralPercent}%</span>
-            <span className="sentiment negative">Bearish {detail.sentimentScore.bearishPercent}%</span>
-          </div>
-          <ul className="stock-headlines">
-            {detail.topHeadlines.map((h, i) => (
-              <li key={i} className={`headline headline-${h.sentiment}`}>
-                <span className="headline-label">{h.sentiment}</span>
-                {h.title}
-              </li>
-            ))}
-          </ul>
-          <Link to={`/dashboard/feed`} className="stock-link">Full News View</Link>
-        </section>
-
-        <section className="stock-panel stock-sharia">
-          <h2 className="stock-panel-title">Sharia Compliance</h2>
-          <dl className="stock-dl">
-            <div><dt>Debt ratio</dt><dd>{detail.shariaCompliance.debtRatioPercent != null ? `${detail.shariaCompliance.debtRatioPercent}%` : "—"}</dd></div>
-            <div><dt>Haram revenue</dt><dd>{detail.shariaCompliance.haramRevenuePercent != null ? `${detail.shariaCompliance.haramRevenuePercent}%` : "—"}</dd></div>
-            <div><dt>Last screening</dt><dd>{detail.shariaCompliance.lastScreeningDate ? new Date(detail.shariaCompliance.lastScreeningDate).toLocaleDateString() : "—"}</dd></div>
-            <div><dt>Safety score</dt><dd className={detail.shariaCompliance.nearThresholdWarning ? "warn" : ""}>{detail.shariaCompliance.complianceSafetyScore}</dd></div>
-          </dl>
-          {!detail.shariaCompliance.compliant && (
-            <p className="stock-sharia-warn">Buy is disabled for symbols not meeting halal screening.</p>
-          )}
-        </section>
+      {/* Sell / Buy toggle above chart */}
+      <div className="stock-actions-row">
+        <button type="button" className={`stock-action-btn ${orderSide === "sell" ? "active" : ""}`} onClick={() => setOrderSide("sell")}>Sell</button>
+        <button type="button" className={`stock-action-btn ${orderSide === "buy" ? "active" : ""}`} onClick={() => setOrderSide("buy")}>Buy</button>
       </div>
 
-      {/* 6. Order Panel + 7. Risk + 8. Summary modal */}
-      <section className="stock-order-section">
-        <div className="stock-order-card">
-          <h2 className="stock-panel-title">{orderSide === "buy" ? "Buy" : "Sell"} Stock</h2>
-          <div className="stock-order-row">
-            <label>Trading balance</label>
-            <span>${(balanceCents / 100).toFixed(2)}</span>
+      {/* 2. Chart (TradingView-style) */}
+      <section className="stock-chart-section">
+        <div className="stock-chart-toolbar">
+          <div className="stock-chart-toggles">
+            {TIMEFRAMES.map((t, i) => (
+              <button
+                key={t.label}
+                type="button"
+                className={`stock-tf-btn ${i === tfIndex ? "active" : ""}`}
+                onClick={() => setTfIndex(i)}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-          <div className="stock-order-tabs">
-            <button type="button" className={orderSide === "buy" ? "active" : ""} onClick={() => setOrderSide("buy")}>Buy</button>
-            <button type="button" className={orderSide === "sell" ? "active" : ""} onClick={() => setOrderSide("sell")}>Sell</button>
-          </div>
-          <div className="stock-order-row">
-            <label>Account</label>
-            <select value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
-              {accounts.filter((a) => a.type === "self_directed").map((a) => (
-                <option key={a.id} value={a.id}>{a.name || "Personal"} (${(a.balanceCents / 100).toFixed(2)})</option>
-              ))}
-            </select>
-          </div>
-          <div className="stock-order-row">
-            <label>Order type</label>
-            <select value={orderType} onChange={(e) => setOrderType(e.target.value as "market" | "limit")}>
-              <option value="market">Market</option>
-              <option value="limit">Limit</option>
-            </select>
-          </div>
-          {orderType === "limit" && (
-            <div className="stock-order-row">
-              <label>Limit price ($)</label>
-              <input type="number" min="0" step="0.01" value={limitPrice} onChange={(e) => setLimitPrice(e.target.value)} placeholder="0.00" />
-            </div>
-          )}
-          <div className="stock-order-row">
-            <label>Quantity</label>
-            <div className="stock-qty-mode">
-              <button type="button" className={inputMode === "shares" ? "active" : ""} onClick={() => setInputMode("shares")}>Shares</button>
-              <button type="button" className={inputMode === "dollars" ? "active" : ""} onClick={() => setInputMode("dollars")}>$ Amount</button>
-            </div>
-            {inputMode === "shares" ? (
-              <input type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="0" />
-            ) : (
-              <input type="number" min="0" step="0.01" value={dollarAmount} onChange={(e) => setDollarAmount(e.target.value)} placeholder="0.00" />
-            )}
-          </div>
-          <div className="stock-order-row">
-            <label>Estimated total</label>
-            <span>${(totalCents / 100).toFixed(2)}</span>
-          </div>
-          {orderSide === "buy" && (
-            <div className="stock-order-row">
-              <label>Cash after trade</label>
-              <span>${((balanceCents - totalCents) / 100).toFixed(2)}</span>
-            </div>
-          )}
-
-          {/* Risk confirmation */}
-          <div className="stock-risk">
-            <p>Position size after trade: {portfolioValueCents > 0 ? (positionPercentAfter.toFixed(1)) : "0"}% of portfolio</p>
-            {largestPositionWarning && <p className="stock-risk-warn">Largest position warning (&gt;35%)</p>}
-            <label className="stock-compliance-check">
-              <input type="checkbox" checked={complianceChecked} onChange={(e) => setComplianceChecked(e.target.checked)} />
-              I understand this stock meets halal screening criteria.
-            </label>
-          </div>
-
-          {orderError && <p className="stock-order-err">{orderError}</p>}
-          {orderSuccess && <p className="stock-order-ok">{orderSuccess}</p>}
-
-          <button
-            type="button"
-            className={`stock-order-btn ${orderSide}`}
-            onClick={openOrderSummary}
-            disabled={!canConfirm || (detail.shariaCompliance.compliant === false && orderSide === "buy")}
-          >
-            {orderSide === "buy" ? "Buy" : "Sell"} {detail.symbol}
-          </button>
-          <p className="stock-terms">By placing this order, you agree to our <a href="#terms">Terms and Conditions</a>.</p>
+          <span className="stock-chart-hint">TradingView Lightweight Charts</span>
+        </div>
+        <div className="stock-chart-container" ref={chartContainerRef}>
+          {ohlcData.length === 0 && !loading && <div className="stock-chart-empty">No chart data</div>}
         </div>
       </section>
+
+      {/* Main grid: Order Book + Buy card | Panels */}
+      <div className="stock-main-grid">
+        <div className="stock-main-left">
+          <section className="stock-panel stock-order-book">
+            <h2 className="stock-panel-title">Order Book</h2>
+            <div className="stock-order-book-table-wrap">
+              <table className="stock-order-book-table">
+                <thead>
+                  <tr><th>Price</th><th>Amount</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {orderBookRows.map((row, i) => (
+                    <tr key={i} className={row.side === "ask" ? "ask" : "bid"}>
+                      <td>${row.price.toFixed(2)}</td>
+                      <td>{row.amount.toLocaleString()}</td>
+                      <td>{(row.price * row.amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="stock-panel stock-peer">
+            <h2 className="stock-panel-title">Peer Analysis <Link to="/invest/trade" className="stock-link">View all</Link></h2>
+            <ul className="stock-peer-list">
+              {PLACEHOLDER_PEERS.map((p) => (
+                <li key={p.symbol}>
+                  <span className="stock-peer-symbol">{p.symbol}</span>
+                  <span className="stock-peer-meta">Est. revenue growth ··· +{p.revenueGrowth}%</span>
+                  <span className="stock-peer-change positive">+{p.change}%</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+
+        <div className="stock-main-right">
+          {/* Buy Stock card – balance slider, +/- price & qty, fee */}
+          <section className="stock-order-card">
+            <h2 className="stock-panel-title">{orderSide === "buy" ? "Buy" : "Sell"} Stock</h2>
+            <div className="stock-order-row">
+              <label>Trading balance</label>
+              <span>${(balanceCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="stock-order-row">
+              <label>Allocation</label>
+              <div className="stock-slider-row">
+                <input type="range" min="0" max="100" value={balancePercent} onChange={(e) => setBalancePercent(Number(e.target.value))} className="stock-balance-slider" />
+                <span>{balancePercent}%</span>
+              </div>
+            </div>
+            <div className="stock-order-row">
+              <label>Investment Total</label>
+              <span>${investmentTotalFromSlider.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="stock-order-row">
+              <label>Buy Price ($)</label>
+              <div className="stock-stepper">
+                <button type="button" className="stock-stepper-btn" disabled={orderType === "market"} onClick={() => limitPrice && parseFloat(limitPrice) > 0.01 && setLimitPrice((parseFloat(limitPrice) - 0.01).toFixed(2))} aria-label="Decrease">−</button>
+                <input type="number" min="0" step="0.01" value={orderType === "market" ? price.toFixed(2) : (limitPrice || price.toFixed(2))} onChange={(e) => orderType === "limit" && setLimitPrice(e.target.value)} readOnly={orderType === "market"} className="stock-stepper-input" />
+                <button type="button" className="stock-stepper-btn" disabled={orderType === "market"} onClick={() => setLimitPrice((buyPrice + 0.01).toFixed(2))} aria-label="Increase">+</button>
+              </div>
+            </div>
+            <div className="stock-order-row">
+              <label>Quantity</label>
+              <div className="stock-qty-mode">
+                <button type="button" className={inputMode === "shares" ? "active" : ""} onClick={() => setInputMode("shares")}>Shares</button>
+                <button type="button" className={inputMode === "dollars" ? "active" : ""} onClick={() => setInputMode("dollars")}>$ Amount</button>
+              </div>
+              <div className="stock-stepper">
+                <button type="button" className="stock-stepper-btn" onClick={() => qtyNum >= 1 && (inputMode === "shares" ? setQuantity(String(Math.floor(qtyNum - 1))) : setDollarAmount((Math.max(0, (qtyNum - 1) * buyPrice)).toFixed(2)))} aria-label="Decrease">−</button>
+                <input type="number" min="0" step={inputMode === "shares" ? 1 : 0.01} value={inputMode === "shares" ? quantity : dollarAmount} onChange={(e) => inputMode === "shares" ? setQuantity(e.target.value) : setDollarAmount(e.target.value)} className="stock-stepper-input" />
+                <button type="button" className="stock-stepper-btn" onClick={() => inputMode === "shares" ? setQuantity(String(Math.floor(qtyNum + 1))) : setDollarAmount(((qtyNum + 1) * buyPrice).toFixed(2))} aria-label="Increase">+</button>
+              </div>
+            </div>
+            <div className="stock-order-row">
+              <label>Total</label>
+              <span>${totalFromOrder.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="stock-order-row">
+              <label>Transaction Fee</label>
+              <span>${TRANSACTION_FEE_USD.toFixed(2)}</span>
+            </div>
+            <div className="stock-order-row">
+              <label>Order type</label>
+              <select value={orderType} onChange={(e) => setOrderType(e.target.value as "market" | "limit")}>
+                <option value="market">Market</option>
+                <option value="limit">Limit</option>
+              </select>
+            </div>
+            <div className="stock-order-row">
+              <label>Account</label>
+              <select value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+                {accounts.filter((a) => a.type === "self_directed").map((a) => (
+                  <option key={a.id} value={a.id}>{a.name || "Personal"}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="stock-risk">
+              <p>Position after trade: {portfolioValueCents > 0 ? positionPercentAfter.toFixed(1) : "0"}% of portfolio</p>
+              {largestPositionWarning && <p className="stock-risk-warn">Largest position warning (&gt;35%)</p>}
+              <label className="stock-compliance-check">
+                <input type="checkbox" checked={complianceChecked} onChange={(e) => setComplianceChecked(e.target.checked)} />
+                I understand this stock meets halal screening criteria.
+              </label>
+            </div>
+
+            {orderError && <p className="stock-order-err">{orderError}</p>}
+            {orderSuccess && <p className="stock-order-ok">{orderSuccess}</p>}
+
+            <button
+              type="button"
+              className={`stock-order-btn ${orderSide}`}
+              onClick={openOrderSummary}
+              disabled={!canConfirm || (detail.shariaCompliance.compliant === false && orderSide === "buy")}
+            >
+              {orderSide === "buy" ? "Buy" : "Sell"} {detail.symbol}
+            </button>
+            <p className="stock-terms">By placing this order, you agree to our <a href="#terms">Terms and Conditions</a>.</p>
+          </section>
+
+          <section className="stock-panel stock-capitalization">
+            <h2 className="stock-panel-title">Capitalization Breakdown</h2>
+            <p className="stock-panel-sub">Currency in USD</p>
+            <dl className="stock-dl">
+              <div><dt>Net Liability</dt><dd>{cap?.netLiability != null ? formatNum(cap.netLiability) : "—"}</dd></div>
+              <div><dt>Market Cap</dt><dd>{formatNum(cap?.marketCap ?? null)}</dd></div>
+              <div><dt>Total Enterprise Value (TEV)</dt><dd>{cap?.tev != null ? formatNum(cap.tev) : "—"}</dd></div>
+              <div><dt>Common Equity</dt><dd>{formatNum(cap?.commonEquity ?? null)}</dd></div>
+              <div><dt>Total Liability</dt><dd>{formatNum(cap?.totalLiabilities ?? null)}</dd></div>
+              <div><dt>Total Capital</dt><dd>{formatNum(cap?.totalCapital ?? null)}</dd></div>
+            </dl>
+          </section>
+        </div>
+      </div>
+
+      {/* Tab content: Statistics / Analyst etc. (below main grid) */}
+      {activeTab !== "Chart" && (
+        <div className="stock-panels">
+          {activeTab === "Statistics" && (
+            <section className="stock-panel stock-snapshot">
+              <h2 className="stock-panel-title">Market Snapshot</h2>
+              <dl className="stock-dl">
+                <div><dt>Market Cap</dt><dd>{formatNum(detail.marketSnapshot.marketCap)}</dd></div>
+                <div><dt>52W High / Low</dt><dd>{detail.marketSnapshot.fiftyTwoWeekHigh != null ? `$${detail.marketSnapshot.fiftyTwoWeekHigh.toFixed(2)}` : "—"} / {detail.marketSnapshot.fiftyTwoWeekLow != null ? `$${detail.marketSnapshot.fiftyTwoWeekLow.toFixed(2)}` : "—"}</dd></div>
+                <div><dt>Avg Volume</dt><dd>{formatNum(detail.marketSnapshot.averageVolume)}</dd></div>
+                <div><dt>Beta</dt><dd>{detail.marketSnapshot.beta != null ? detail.marketSnapshot.beta.toFixed(2) : "—"}</dd></div>
+                <div><dt>P/E</dt><dd>{detail.marketSnapshot.trailingPE != null ? detail.marketSnapshot.trailingPE.toFixed(2) : "—"}</dd></div>
+                <div><dt>Revenue growth</dt><dd>{detail.marketSnapshot.revenueGrowthPercent != null ? `${detail.marketSnapshot.revenueGrowthPercent}%` : "—"}</dd></div>
+              </dl>
+            </section>
+          )}
+          {(activeTab === "Analyst" || activeTab === "Earnings" || activeTab === "Insider" || activeTab === "Financials") && (
+            <section className="stock-panel">
+              <h2 className="stock-panel-title">{activeTab}</h2>
+              <p className="stock-panel-sub">Content coming soon.</p>
+            </section>
+          )}
+          {activeTab === "Peer" && (
+            <section className="stock-panel stock-sentiment">
+              <h2 className="stock-panel-title">Sentiment & News</h2>
+              <div className="stock-sentiment-bars">
+                <span className="sentiment positive">Bullish {detail.sentimentScore.bullishPercent}%</span>
+                <span className="sentiment neutral">Neutral {detail.sentimentScore.neutralPercent}%</span>
+                <span className="sentiment negative">Bearish {detail.sentimentScore.bearishPercent}%</span>
+              </div>
+              <ul className="stock-headlines">
+                {detail.topHeadlines.map((h, i) => (
+                  <li key={i} className={`headline headline-${h.sentiment}`}>
+                    <span className="headline-label">{h.sentiment}</span>
+                    {h.title}
+                  </li>
+                ))}
+              </ul>
+              <Link to={`/dashboard/feed`} className="stock-link">Full News View</Link>
+            </section>
+          )}
+        </div>
+      )}
+
+      {/* Sharia panel when Chart tab */}
+      {activeTab === "Chart" && (
+        <div className="stock-panels">
+          <section className="stock-panel stock-snapshot">
+            <h2 className="stock-panel-title">Market Snapshot</h2>
+            <dl className="stock-dl">
+              <div><dt>Market Cap</dt><dd>{formatNum(detail.marketSnapshot.marketCap)}</dd></div>
+              <div><dt>52W High / Low</dt><dd>{detail.marketSnapshot.fiftyTwoWeekHigh != null ? `$${detail.marketSnapshot.fiftyTwoWeekHigh.toFixed(2)}` : "—"} / {detail.marketSnapshot.fiftyTwoWeekLow != null ? `$${detail.marketSnapshot.fiftyTwoWeekLow.toFixed(2)}` : "—"}</dd></div>
+              <div><dt>Avg Volume</dt><dd>{formatNum(detail.marketSnapshot.averageVolume)}</dd></div>
+              <div><dt>Beta</dt><dd>{detail.marketSnapshot.beta != null ? detail.marketSnapshot.beta.toFixed(2) : "—"}</dd></div>
+              <div><dt>RSI</dt><dd>{detail.marketSnapshot.rsiLabel}</dd></div>
+              <div><dt>P/E</dt><dd>{detail.marketSnapshot.trailingPE != null ? detail.marketSnapshot.trailingPE.toFixed(2) : "—"}</dd></div>
+            </dl>
+          </section>
+          <section className="stock-panel stock-sharia">
+            <h2 className="stock-panel-title">Sharia Compliance</h2>
+            <dl className="stock-dl">
+              <div><dt>Last screening</dt><dd>{detail.shariaCompliance.lastScreeningDate ? new Date(detail.shariaCompliance.lastScreeningDate).toLocaleDateString() : "—"}</dd></div>
+              <div><dt>Safety score</dt><dd className={detail.shariaCompliance.nearThresholdWarning ? "warn" : ""}>{detail.shariaCompliance.complianceSafetyScore}</dd></div>
+            </dl>
+            {!detail.shariaCompliance.compliant && (
+              <p className="stock-sharia-warn">Buy is disabled for symbols not meeting halal screening.</p>
+            )}
+          </section>
+        </div>
+      )}
 
       {/* Order Summary Modal */}
       {showOrderSummary && (

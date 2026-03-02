@@ -110,7 +110,7 @@ export async function getOHLC(symbol: string, interval: string = "1d", range: st
   return res.json();
 }
 
-/** Stock detail: quote, company, snapshot, sentiment, compliance (for stock detail + trade page) */
+/** Stock detail: quote, company, snapshot, sentiment, compliance, capitalization (for stock detail + trade page) */
 export async function getStockDetail(symbol: string): Promise<{
   symbol: string;
   quote: { price: number; currency: string; changePercent?: number; previousClose?: number };
@@ -139,6 +139,14 @@ export async function getStockDetail(symbol: string): Promise<{
     debtRatioPercent: number | null;
     haramRevenuePercent: number | null;
     nearThresholdWarning: boolean;
+  };
+  capitalization?: {
+    marketCap: number | null;
+    netLiability: number | null;
+    tev: number | null;
+    commonEquity: number | null;
+    totalLiabilities: number | null;
+    totalCapital: number | null;
   };
 }> {
   const res = await fetch(`${API}/api/invest/market/${encodeURIComponent(symbol)}/detail`, { headers: headers() });

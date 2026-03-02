@@ -15,6 +15,16 @@
   color: #555;
 }
 
+.stock-data-error {
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  color: #b45309;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
 .stock-detail-error {
   color: #c62828;
 }
@@ -23,13 +33,68 @@
 .stock-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   padding: 16px 20px;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e0e8e0;
+}
+
+.stock-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.stock-tab-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.stock-tab-btn:hover {
+  background: #eee;
+  color: #333;
+}
+
+.stock-tab-btn.active {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+
+.stock-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stock-action-btn {
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.stock-action-btn.active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+
+.stock-action-btn:hover:not(.active) {
+  background: #eee;
 }
 
 .stock-back {
@@ -127,13 +192,36 @@
   border-radius: 12px;
   border: 1px solid #e0e8e0;
   padding: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.stock-chart-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .stock-chart-toggles {
   display: flex;
   gap: 6px;
-  margin-bottom: 12px;
+}
+
+.stock-chart-hint {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.stock-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: #888;
+  font-size: 0.9rem;
 }
 
 .stock-tf-btn {
@@ -161,6 +249,163 @@
 .stock-chart-container {
   height: 380px;
   width: 100%;
+  position: relative;
+}
+
+/* Main grid: Order Book + Peer | Buy card + Capitalization */
+.stock-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .stock-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stock-main-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stock-main-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stock-order-book-table-wrap {
+  overflow-x: auto;
+}
+
+.stock-order-book-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.stock-order-book-table th,
+.stock-order-book-table td {
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.stock-order-book-table th {
+  color: #666;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+}
+
+.stock-order-book-table tbody tr.ask td:first-child {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.stock-order-book-table tbody tr.bid td:first-child {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.stock-peer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stock-peer-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.stock-peer-symbol {
+  font-weight: 700;
+  min-width: 48px;
+}
+
+.stock-peer-meta {
+  flex: 1;
+  color: #666;
+}
+
+.stock-peer-change.positive {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.stock-panel-sub {
+  margin: -8px 0 12px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.stock-panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stock-balance-slider {
+  width: 100%;
+  max-width: 200px;
+  margin-right: 10px;
+}
+
+.stock-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stock-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.stock-stepper-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #555;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.stock-stepper-btn:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.stock-stepper-btn:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.stock-stepper-input {
+  width: 100%;
+  min-width: 80px;
+  max-width: 120px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border: 1px solid #ddd;
+  border-left: none;
+  border-right: none;
+  text-align: center;
+}
+
+.stock-order-card .stock-order-row:last-of-type {
+  margin-bottom: 0;
 }
 
 /* 3–5. Panels grid */

@@ -476,22 +476,28 @@ router.get(
   }
 );
 
-/** GET /invest/market/:symbol/detail – full stock detail: quote, snapshot, sentiment, compliance (stock detail + trade page) */
+/** GET /invest/market/:symbol/detail – full stock detail: quote, snapshot, sentiment, compliance. Always returns 200 with at least placeholder data for UI. */
 router.get(
   "/market/:symbol/detail",
   param("symbol").trim().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
     const symbol = (req.params.symbol as string).toUpperCase();
-    const [quote, summary, insights, halal] = await Promise.all([
-      getQuote(symbol),
-      getQuoteSummary(symbol),
-      getCompanyInsights(symbol),
-      prisma.halalSymbol.findUnique({ where: { symbol }, select: { symbol: true, name: true, lastVerifiedAt: true } }),
-    ]);
-    if (!quote) {
-      res.status(404).json({ error: "Quote not found for symbol." });
-      return;
+    let quote: { price: number; currency: string; previousClose?: number; changePercent?: number } | null = null;
+    let summary: Awaited<ReturnType<typeof getQuoteSummary>> = null;
+    let insights: Awaited<ReturnType<typeof getCompanyInsights>> = [];
+    let halal: { symbol: string; name: string | null; lastVerifiedAt: Date | null } | null = null;
+    try {
+      [quote, summary, insights, halal] = await Promise.all([
+        getQuote(symbol).catch(() => null),
+        getQuoteSummary(symbol).catch(() => null),
+        getCompanyInsights(symbol).catch(() => []),
+        prisma.halalSymbol.findUnique({ where: { symbol }, select: { symbol: true, name: true, lastVerifiedAt: true } }),
+      ]);
+    } catch (err) {
+      console.error("[invest/market/:symbol/detail]", err);
     }
+    const price = quote?.price ?? 0;
+    const changePercent = quote?.changePercent ?? 0;
     const isHalal = !!halal;
     const companyName = summary?.longName ?? summary?.shortName ?? halal?.name ?? symbol;
     const exchange = summary?.exchange ?? "—";
@@ -529,15 +535,23 @@ router.get(
     const shariaCompliance = {
       compliant: isHalal,
       lastScreeningDate: halal?.lastVerifiedAt?.toISOString() ?? null,
-      complianceSafetyScore: isHalal ? "Verified" : "Not screened",
+      complianceSafetyScore: isHalal ? "Verified" : "Under Review",
       debtRatioPercent: null as number | null,
       haramRevenuePercent: null as number | null,
       nearThresholdWarning: false,
     };
 
+    const marketCap = summary?.marketCap ?? null;
+    const summaryExt = summary as { totalDebt?: number; totalLiab?: number; totalStockholderEquity?: number } | null | undefined;
+    const totalLiabilities = summaryExt?.totalDebt ?? summaryExt?.totalLiab ?? null;
+    const commonEquity = summaryExt?.totalStockholderEquity ?? null;
+    const netLiability = totalLiabilities != null ? -totalLiabilities : null;
+    const tev = marketCap != null && totalLiabilities != null ? marketCap - totalLiabilities : marketCap;
+    const totalCapital = commonEquity != null && totalLiabilities != null ? commonEquity + totalLiabilities : null;
+
     res.json({
       symbol,
-      quote: { price: quote.price, currency: quote.currency, changePercent: quote.changePercent, previousClose: quote.previousClose },
+      quote: { price, currency: quote?.currency ?? "USD", changePercent, previousClose: quote?.previousClose ?? price },
       companyName,
       exchange,
       complianceBadge: isHalal ? "Halal Verified" : "Under Review",
@@ -551,6 +565,14 @@ router.get(
       sentimentShift: null,
       topHeadlines,
       shariaCompliance,
+      capitalization: {
+        marketCap,
+        netLiability,
+        tev,
+        commonEquity,
+        totalLiabilities,
+        totalCapital,
+      },
     });
   }
 );
