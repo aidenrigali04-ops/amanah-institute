@@ -18,4 +18,6 @@ RUN npm run build
 
 ENV NODE_ENV=production
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+COPY start.sh ./
+RUN chmod +x start.sh
+CMD ["./start.sh"]
