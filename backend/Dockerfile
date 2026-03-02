@@ -1,5 +1,6 @@
 # Nixpacks Node 22 is 22.11.x; Prisma 7 requires 22.12+. Pin exact version.
-FROM node:22.12.0-bookworm-slim AS base
+# Use full bookworm (not -slim) so Prisma gets OpenSSL libs it needs; slim was causing "Stopping Container" after migrate.
+FROM node:22.12.0-bookworm AS base
 WORKDIR /app
 
 COPY package.json package-lock.json ./

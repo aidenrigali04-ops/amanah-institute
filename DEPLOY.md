@@ -115,7 +115,7 @@ If you don’t use `railway.toml`, set these in the service **Settings** → **D
 
 ### Backend CORS
 
-The backend allows your Vercel origin and localhost; OPTIONS (CORS preflight) is handled first so the browser can complete the request.
+The backend uses `Access-Control-Allow-Origin: *` and no credentials (auth uses Bearer token only), so any origin can call the API without CORS preflight issues.
 
 ### Frontend API base URL
 
@@ -156,4 +156,57 @@ The backend allows your Vercel origin and localhost; OPTIONS (CORS preflight) is
 - **DB connection errors:** Check `DATABASE_URL` on Railway; ensure it’s the Postgres service URL and the backend service can reach it.
 - **Frontend can’t reach API:** Check `VITE_API_URL` in Vercel (no trailing slash); rebuild after changing env vars.
 - **Migrations:** Each deploy runs `npx prisma migrate deploy` before starting the app; for new migrations, push to main and let Railway redeploy.
-- **502 Bad Gateway on OPTIONS /api/auth/register:** Railway’s edge got the request but your backend didn’t respond in time or isn’t running. Check **Railway → your backend service → Deployments / Logs**: ensure the app starts (no crash after `node dist/index.js`), listens on `PORT`, and that `prisma migrate deploy` finishes. If the service is sleeping or slow to start, the first request can 502; retry after the service is warm. The backend now answers OPTIONS immediately to reduce preflight delay.
+- **502 Bad Gateway on OPTIONS /api/auth/register:** Railway’s edge got the request but your backend didn’t respond in time or isn’t running. Check **Railway → your backend service → Deployments / Logs**: ensure the app starts (no crash after `node dist/index.js`), listens on `PORT`, and that `prisma migrate deploy` finishes. If the service is sleeping or slow to start, the first request can 502; retry after the service is warm.
+- **"Cannot reach server (network or CORS)":** See **Finding the core issues** below.
+
+---
+
+## Finding the core issues (step-by-step)
+
+When registration or login keeps failing with "cannot reach server" or 502, isolate the cause:
+
+### 1. Confirm the backend is running (Railway)
+
+1. Open **Railway** → your backend service → **Deployments** (or **Logs**).
+2. After a deploy, you should see:
+   - `npx prisma migrate deploy` completing (no errors).
+   - `Amanah Institute API listening on http://0.0.0.0:XXXX (PORT=XXXX)`.
+3. If you see a crash or no "listening" line, the app never started. Fix the error in the logs (e.g. `DATABASE_URL`, Prisma, Node version).
+
+### 2. Confirm the backend responds (from your machine)
+
+In a terminal, call the health endpoint (use your real Railway URL):
+
+```bash
+curl -v https://YOUR-RAILWAY-URL.up.railway.app/health
+```
+
+- **200 and `{"ok":true,...}`:** Backend is up. Continue to step 3.
+- **No response / timeout / 502:** Backend is down or not ready. Check Railway logs; ensure the service has a **generated public domain**.
+
+### 3. Confirm the frontend uses the correct API URL (Vercel)
+
+1. **Vercel** → project → **Settings** → **Environment Variables**.
+2. **`VITE_API_URL`** must equal your **exact** Railway URL (e.g. `https://amanah-production-e280.up.railway.app`), no trailing slash.
+3. **Redeploy the frontend** after changing env vars. Vite bakes `VITE_API_URL` at build time.
+4. On Register/Login, the yellow banner shows the URL in use if the backend is unreachable; it must match Railway.
+
+### 4. Confirm requests reach the backend (Railway logs)
+
+Open Register on Vercel and submit (or load the page for the health check). In **Railway** → backend → **Logs**, look for:
+
+- `GET /health`
+- `OPTIONS /api/auth/register`
+- `POST /api/auth/register`
+
+**If you see these:** Requests reach the app; check DevTools → Network for response status. **If you never see these:** Wrong API URL (step 3) or backend returning 502 (step 1–2).
+
+### 5. Summary checklist
+
+| Check | What to verify |
+|-------|----------------|
+| Railway backend | Logs show "Amanah Institute API listening on http://0.0.0.0:..." |
+| Backend URL | `curl https://YOUR-RAILWAY-URL/health` returns 200 and JSON |
+| Vercel env | `VITE_API_URL` = that exact Railway URL (no trailing slash) |
+| Vercel deploy | Frontend was redeployed **after** setting `VITE_API_URL` |
+| Railway domain | Backend service has a **generated public domain** |

@@ -13,54 +13,26 @@ import workspaceRoutes from "./routes/workspace.js";
 
 const app = express();
 
-// CORS: allow Vercel and localhost so browser doesn't block fetch (net::ERR_FAILED)
-const allowedOrigins = [
-  "https://amanah-institute.vercel.app",
-  "http://localhost:3000",
-  "http://localhost:5173",
-];
-function isAllowedOrigin(origin: string | undefined): boolean {
-  if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
-  if (/\.vercel\.app$/i.test(origin) || /^https?:\/\/localhost(:\d+)?$/i.test(origin)) return true;
-  return false;
-}
-
-// Handle OPTIONS (CORS preflight) immediately so Railway doesn't 502; no body parsing needed
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    const origin = req.headers.origin;
-    if (origin && isAllowedOrigin(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-    } else {
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigins[0]);
-    }
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Max-Age", "86400");
-    return res.status(204).end();
-  }
-  next();
-});
-
+// CORS: allow any origin (we use Bearer token, not cookies). Simpler = fewer 502/preflight issues.
 app.use(
   cors({
-    origin: (origin, cb) => {
-      if (isAllowedOrigin(origin)) {
-        cb(null, origin || allowedOrigins[0]);
-      } else {
-        cb(null, allowedOrigins[0]);
-      }
-    },
-    credentials: true,
+    origin: "*",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-    preflightContinue: false,
+    credentials: false,
     optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
+
+// Log requests to health and auth so Railway logs show if traffic reaches the app
+app.use((req, _res, next) => {
+  const path = req.path;
+  if (path === "/health" || path.startsWith("/api/auth/")) {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
+  }
+  next();
+});
 
 // Health
 app.get("/health", (_req, res) => {
@@ -89,6 +61,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: "Internal server error" });
 });
 
-app.listen(config.port, () => {
-  console.log(`Amanah Institute API listening on http://localhost:${config.port}`);
+const host = "0.0.0.0";
+app.listen(config.port, host, () => {
+  console.log(`Amanah Institute API listening on http://${host}:${config.port} (PORT=${config.port})`);
 });
