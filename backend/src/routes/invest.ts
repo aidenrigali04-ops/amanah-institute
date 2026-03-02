@@ -28,7 +28,7 @@ router.get("/accounts", async (req: Request, res: Response): Promise<void> => {
 router.get("/portfolio", async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;
   const userId = req.user.userId;
-
+  try {
   const [accounts, holdings, watchlistItems, recentTxns] = await Promise.all([
     prisma.account.findMany({
       where: { userId },
@@ -58,13 +58,16 @@ router.get("/portfolio", async (req: Request, res: Response): Promise<void> => {
   const positionHoldings = holdings.filter((h) => h.account.type === "self_directed");
   const positionSymbols = [...new Set(positionHoldings.map((h) => h.symbol))];
   const watchlistSymbols = watchlistItems.map((w) => w.symbol);
+  const allSymbols = [...positionSymbols, ...watchlistSymbols];
 
   const [quotes, halalNames] = await Promise.all([
-    getQuotes([...positionSymbols, ...watchlistSymbols]),
-    prisma.halalSymbol.findMany({
-      where: { symbol: { in: [...positionSymbols, ...watchlistSymbols] } },
-      select: { symbol: true, name: true },
-    }),
+    allSymbols.length > 0 ? getQuotes(allSymbols) : Promise.resolve({} as Record<string, { price: number; currency: string; previousClose?: number; changePercent?: number } | null>),
+    allSymbols.length > 0
+      ? prisma.halalSymbol.findMany({
+          where: { symbol: { in: allSymbols } },
+          select: { symbol: true, name: true },
+        })
+      : Promise.resolve([]),
   ]);
   const nameBySymbol = Object.fromEntries(halalNames.map((h) => [h.symbol, h.name ?? h.symbol]));
 
@@ -153,6 +156,10 @@ router.get("/portfolio", async (req: Request, res: Response): Promise<void> => {
     watchlistPreview,
     recentActivity,
   });
+  } catch (err) {
+    console.error("[invest/portfolio]", err);
+    res.status(500).json({ error: "Failed to load portfolio" });
+  }
 });
 
 /** GET /invest/profile – risk profile and allocation config */

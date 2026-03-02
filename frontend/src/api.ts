@@ -254,7 +254,10 @@ export async function getPortfolio(): Promise<{
   recentActivity: { type: "buy" | "sell"; ticker: string; date: string; amountCents: number; quantity: number | null }[];
 }> {
   const res = await fetch(`${API}/api/invest/portfolio`, { headers: headers() });
-  if (!res.ok) throw new Error("Failed to load portfolio");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error || "Failed to load portfolio");
+  }
   return res.json();
 }
 
