@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { createChart, CandlestickData } from "lightweight-charts";
 import {
   getQuote,
@@ -26,7 +26,8 @@ const TIMEFRAMES = [
 
 export default function Trade() {
   const navigate = useNavigate();
-  const [symbol, setSymbol] = useState("AAPL");
+  const { ticker: tickerParam } = useParams<{ ticker?: string }>();
+  const [symbol, setSymbol] = useState(tickerParam?.toUpperCase() ?? "AAPL");
   const [search, setSearch] = useState("");
   const [symbolSuggestions, setSymbolSuggestions] = useState<{ symbol: string; name: string | null }[]>([]);
   const [timeframeIndex, setTimeframeIndex] = useState(2);
@@ -52,6 +53,10 @@ export default function Trade() {
   const tf = TIMEFRAMES[timeframeIndex];
   const interval = tf?.interval ?? "1d";
   const range = tf?.range ?? "1mo";
+
+  useEffect(() => {
+    if (tickerParam) setSymbol(tickerParam.toUpperCase());
+  }, [tickerParam]);
 
   const loadQuote = useCallback(async (sym: string) => {
     const q = await getQuote(sym);

@@ -1,0 +1,446 @@
+/* Personal trade account: minimal, sharp, disciplined portfolio terminal */
+
+.trading-portfolio {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 32px;
+}
+
+.trading-portfolio-loading,
+.trading-portfolio-error {
+  text-align: center;
+  padding: 48px 24px;
+  color: #555;
+}
+
+.trading-portfolio-error {
+  color: #b71c1c;
+}
+
+/* 1. Snapshot */
+.trading-snapshot {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.trading-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px 24px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .trading-snapshot-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.trading-snapshot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trading-snapshot-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.trading-snapshot-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trading-snapshot-value.positive {
+  color: #2e7d32;
+}
+
+.trading-snapshot-value.negative {
+  color: #c62828;
+}
+
+.trading-chart-wrap {
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.trading-chart-toggles {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.trading-chart-toggle {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.trading-chart-toggle:hover {
+  background: #eee;
+  color: #333;
+}
+
+.trading-chart-toggle.active {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+
+.trading-chart-mini {
+  min-height: 48px;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.trading-chart-placeholder {
+  padding: 12px;
+  font-size: 0.85rem;
+  color: #999;
+  text-align: center;
+}
+
+/* 2. Main layout: positions + side */
+.trading-main-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .trading-main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trading-section-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trading-section-title--small {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+/* Positions table */
+.trading-positions {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.trading-empty {
+  margin: 0;
+  padding: 24px;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+
+.trading-empty--small {
+  padding: 12px 0;
+  font-size: 0.85rem;
+}
+
+.trading-table-wrap {
+  overflow-x: auto;
+}
+
+.trading-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.trading-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 1px solid #eee;
+}
+
+.trading-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.trading-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.trading-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.trading-row:hover {
+  background: #f8faf8;
+}
+
+.trading-row:focus {
+  outline: 2px solid #2e7d32;
+  outline-offset: -2px;
+}
+
+.trading-ticker {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trading-company {
+  color: #555;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trading-table .positive {
+  color: #2e7d32;
+}
+
+.trading-table .negative {
+  color: #c62828;
+}
+
+.trading-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 4px;
+}
+
+.trading-menu-col {
+  width: 36px;
+  padding-left: 0 !important;
+}
+
+.trading-row-menu {
+  padding: 4px 8px;
+  font-size: 1rem;
+  line-height: 1;
+  color: #999;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.trading-row-menu:hover {
+  color: #555;
+  background: #eee;
+}
+
+/* 3. Side: Exposure + Watchlist */
+.trading-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.trading-exposure,
+.trading-watchlist-preview {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.trading-exposure-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trading-exposure-list div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trading-exposure-list dt {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.trading-exposure-list dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trading-exposure-warn {
+  color: #b45309;
+}
+
+.trading-exposure-warn-icon {
+  margin-left: 2px;
+}
+
+.trading-watchlist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.trading-watchlist-item {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.trading-watchlist-item:last-child {
+  border-bottom: none;
+}
+
+.trading-watchlist-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  font-size: 0.875rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.trading-watchlist-link:hover {
+  color: #2e7d32;
+}
+
+.trading-watchlist-ticker {
+  font-weight: 600;
+  width: 56px;
+}
+
+.trading-watchlist-price {
+  flex: 1;
+  text-align: right;
+}
+
+.trading-watchlist-pct.positive {
+  color: #2e7d32;
+  width: 56px;
+  text-align: right;
+}
+
+.trading-watchlist-pct.negative {
+  color: #c62828;
+  width: 56px;
+  text-align: right;
+}
+
+.trading-watchlist-pct.neutral {
+  color: #666;
+  width: 56px;
+  text-align: right;
+}
+
+.trading-watchlist-arrow {
+  font-size: 0.75rem;
+  color: #999;
+  width: 16px;
+}
+
+.trading-watchlist-btn {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2e7d32;
+  background: #f1f8e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.trading-watchlist-btn:hover {
+  background: #e8f5e9;
+}
+
+/* 4. Recent Activity */
+.trading-activity {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}
+
+.trading-activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.trading-activity-item {
+  display: grid;
+  grid-template-columns: 56px 72px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.trading-activity-type {
+  font-weight: 600;
+}
+
+.trading-activity-type.buy {
+  color: #2e7d32;
+}
+
+.trading-activity-type.sell {
+  color: #c62828;
+}
+
+.trading-activity-ticker {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trading-activity-date {
+  color: #666;
+}
+
+.trading-activity-amount {
+  font-weight: 500;
+  text-align: right;
+}
+
+.trading-activity-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2e7d32;
+  text-decoration: none;
+}
+
+.trading-activity-link:hover {
+  text-decoration: underline;
+}

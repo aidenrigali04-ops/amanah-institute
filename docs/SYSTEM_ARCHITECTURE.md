@@ -105,6 +105,8 @@ There are **three home surfaces** (no duplication of logic):
 
 **API:** `GET /api/invest/accounts`, holdings, watchlist, analytics; `GET /api/invest/market/top-gainers?period=1h|1d|3d|1wk|1mo`.
 
+**Personal trade account (portfolio terminal)** — Shown at `/invest` when user has completed trading onboarding. Minimal, disciplined UX: portfolio snapshot (total value, cash, today’s P&L, all-time P&L) + small performance chart (1D/1W/1M/3M/1Y/All), open positions table (ticker, company, qty, avg cost, current price, unrealized P&L, compliance badge; row click → `/invest/stock/:ticker`), exposure panel (largest position %, sector %, cash %; warning if largest > 35%), watchlist preview (top 3–5), recent activity (last 5 trades). No news, top gainers, or trading from this page; trade only from stock detail. **API:** `GET /api/invest/portfolio`. **Flow:** View account → Market or click position → stock page → trade there.
+
 ---
 
 ### 4.3 Academy Dashboard Home (`/academy`)
@@ -141,9 +143,10 @@ There are **three home surfaces** (no duplication of logic):
 | **Analysis / P&L page** | All P&L, allocation, performance | ✅ `GET /api/invest/analytics` |
 | **Sidebar** | Watchlist, Screener, Full analysis as uncollapsed sidebar options to reduce clutter | 🔲 UI |
 | **Trade execution page** | User selects symbol (personal trading account); **chart (TradingView-style)**, summarized market & news, overall analysis (bullish/bearish, volatility) | ✅ Trade page with chart, order entry, positions; news/analysis can be surfaced |
+| **Stock detail + trade execution** | `/invest/stock/:ticker`: header (company, ticker, price, % change, compliance badge, watchlist), chart (1D–5Y), market snapshot (cap, 52w, volume, beta, P/E, RSI, earnings trend), sentiment & top 3 headlines, Sharia compliance box, order panel (account, market/limit, shares/$), risk confirmation (position %, >35% warning, compliance checkbox), order summary modal before submit. Buy disabled if non-compliant. Minimal, professional mode. | ✅ `GET /api/invest/market/:symbol/detail`; StockDetail page |
 
 **APIs:**  
-- Market: `quote`, `ohlc`, `search`, `feed`, `top-gainers`, `:symbol/news`.  
+- Market: `quote`, `ohlc`, `search`, `feed`, `top-gainers`, `:symbol/news`, **`:symbol/detail`** (quote + snapshot + sentiment + compliance).  
 - Self-directed: accounts, watchlist CRUD, orders (buy/sell), holdings, transactions, analytics.
 
 **Top gainers periods:** Backend supports `1h | 1d | 3d | 1wk | 1mo` (1h/1d from screener; 3d from historical close; 1wk/1mo same as 1d for now). Frontend can add dropdown.

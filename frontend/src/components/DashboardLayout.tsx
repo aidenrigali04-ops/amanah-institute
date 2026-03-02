@@ -46,8 +46,11 @@ export default function DashboardLayout() {
             Workspace
           </NavLink>
           <span className="sidebar-heading">Tradings</span>
-          <NavLink to="/invest" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
+          <NavLink to="/invest" end className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
             My Account
+          </NavLink>
+          <NavLink to="/invest/trade" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
+            Market
           </NavLink>
           <NavLink to="/invest/automated" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
             Automated Account

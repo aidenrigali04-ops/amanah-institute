@@ -110,6 +110,42 @@ export async function getOHLC(symbol: string, interval: string = "1d", range: st
   return res.json();
 }
 
+/** Stock detail: quote, company, snapshot, sentiment, compliance (for stock detail + trade page) */
+export async function getStockDetail(symbol: string): Promise<{
+  symbol: string;
+  quote: { price: number; currency: string; changePercent?: number; previousClose?: number };
+  companyName: string;
+  exchange: string;
+  complianceBadge: string;
+  marketSnapshot: {
+    marketCap: number | null;
+    fiftyTwoWeekHigh: number | null;
+    fiftyTwoWeekLow: number | null;
+    averageVolume: number | null;
+    beta: number | null;
+    trailingPE: number | null;
+    revenueGrowthPercent: number | null;
+    rsiLabel: string;
+    volumeTrend: string;
+    earningsTrend: string;
+  };
+  sentimentScore: { bullishPercent: number; neutralPercent: number; bearishPercent: number };
+  sentimentShift: number | null;
+  topHeadlines: { title: string; sentiment: string; publishedAt: string; source: string }[];
+  shariaCompliance: {
+    compliant: boolean;
+    lastScreeningDate: string | null;
+    complianceSafetyScore: string;
+    debtRatioPercent: number | null;
+    haramRevenuePercent: number | null;
+    nearThresholdWarning: boolean;
+  };
+}> {
+  const res = await fetch(`${API}/api/invest/market/${encodeURIComponent(symbol)}/detail`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load stock detail");
+  return res.json();
+}
+
 export async function getSymbols() {
   const res = await fetch(`${API}/api/invest/symbols`, { headers: headers() });
   if (!res.ok) return [];
@@ -185,6 +221,49 @@ export async function getOrders(limit?: number) {
   if (!res.ok) return [];
   const j = await res.json();
   return j.orders || [];
+}
+
+/** Personal trade account dashboard: snapshot, positions, exposure, watchlist preview, recent activity */
+export async function getPortfolio(): Promise<{
+  snapshot: {
+    totalAccountValueCents: number;
+    cashAvailableCents: number;
+    todayPnlCents: number;
+    allTimePnlCents: number;
+    currency: string;
+  };
+  chartRanges: string[];
+  chartData: { date: string; valueCents: number }[];
+  positions: {
+    ticker: string;
+    companyName: string;
+    quantity: number;
+    avgCostCents: number;
+    currentPrice: number;
+    unrealizedPnlCents: number;
+    unrealizedPnlPercent: number;
+    complianceBadge: string;
+  }[];
+  exposure: {
+    largestPositionPercent: number;
+    sectorConcentrationPercent: number | null;
+    cashAllocationPercent: number;
+    largestPositionWarning: boolean;
+  };
+  watchlistPreview: { ticker: string; price: number; changePercent: number; sentiment: string; companyName: string }[];
+  recentActivity: { type: "buy" | "sell"; ticker: string; date: string; amountCents: number; quantity: number | null }[];
+}> {
+  const res = await fetch(`${API}/api/invest/portfolio`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load portfolio");
+  return res.json();
+}
+
+export async function getTransactions(limit?: number) {
+  const url = limit ? `${API}/api/invest/transactions?limit=${limit}` : `${API}/api/invest/transactions`;
+  const res = await fetch(url, { headers: headers() });
+  if (!res.ok) return [];
+  const j = await res.json();
+  return j.transactions || [];
 }
 
 // ─── Academy (Amanah Wealth Academy) ────────────────────────────────────────

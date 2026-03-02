@@ -59,51 +59,61 @@ export default function DashboardHome() {
   const academyDone = !!data.academyPersonalized;
   const tradingDone = !!data.tradingAccountOpened;
 
+  const showAcademyCta = (path === "business" || path === "both" || path === "not_sure") && !academyDone;
+  const showTradingCta = (path === "investing" || path === "both" || path === "not_sure") && !tradingDone;
+  const showHeroCtas = showAcademyCta || showTradingCta;
+
   return (
     <div className="dashboard-home">
-      {/* Path-based hero CTAs: link to onboarding when not complete, else to feature home */}
-      <section className="dashboard-hero-ctas" aria-label="Next steps based on your focus">
-        {path === "investing" && (
-          <div className="dashboard-hero-single">
-            <button
-              type="button"
-              className="dashboard-hero-btn"
-              onClick={() => navigate(tradingDone ? "/invest" : "/invest/onboarding")}
-            >
-              {tradingDone ? "My Trading Account" : "Open My Trading Account"}
-            </button>
-          </div>
-        )}
-        {path === "business" && (
-          <div className="dashboard-hero-single">
-            <button
-              type="button"
-              className="dashboard-hero-btn"
-              onClick={() => navigate(academyDone ? "/academy" : "/academy/onboarding")}
-            >
-              {academyDone ? "My Academy Dashboard" : "Personalize My Business Academy"}
-            </button>
-          </div>
-        )}
-        {(path === "both" || path === "not_sure") && (
-          <div className="dashboard-hero-dual">
-            <button
-              type="button"
-              className="dashboard-hero-btn"
-              onClick={() => navigate(academyDone ? "/academy" : "/academy/onboarding")}
-            >
-              {academyDone ? "My Academy Dashboard" : "Personalize My Business Academy"}
-            </button>
-            <button
-              type="button"
-              className="dashboard-hero-btn"
-              onClick={() => navigate(tradingDone ? "/invest" : "/invest/onboarding")}
-            >
-              {tradingDone ? "My Trading Account" : "Open My Trading Account"}
-            </button>
-          </div>
-        )}
-      </section>
+      {/* Hero CTAs only when at least one step is not done; hide section once both academy personalized and trading opened */}
+      {showHeroCtas && (
+        <section className="dashboard-hero-ctas" aria-label="Next steps based on your focus">
+          {path === "investing" && showTradingCta && (
+            <div className="dashboard-hero-single">
+              <button
+                type="button"
+                className="dashboard-hero-btn"
+                onClick={() => navigate("/invest/onboarding")}
+              >
+                Open My Trading Account
+              </button>
+            </div>
+          )}
+          {path === "business" && showAcademyCta && (
+            <div className="dashboard-hero-single">
+              <button
+                type="button"
+                className="dashboard-hero-btn"
+                onClick={() => navigate("/academy/onboarding")}
+              >
+                Personalize My Business Academy
+              </button>
+            </div>
+          )}
+          {(path === "both" || path === "not_sure") && (showAcademyCta || showTradingCta) && (
+            <div className="dashboard-hero-dual">
+              {showAcademyCta && (
+                <button
+                  type="button"
+                  className="dashboard-hero-btn"
+                  onClick={() => navigate("/academy/onboarding")}
+                >
+                  Personalize My Business Academy
+                </button>
+              )}
+              {showTradingCta && (
+                <button
+                  type="button"
+                  className="dashboard-hero-btn"
+                  onClick={() => navigate("/invest/onboarding")}
+                >
+                  Open My Trading Account
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="dashboard-cards">
         {/* Row 1: Market News + Top Gainers */}

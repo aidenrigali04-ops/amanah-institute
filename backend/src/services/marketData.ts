@@ -52,6 +52,7 @@ export async function getOHLC(
     else if (range === "3mo") start.setMonth(start.getMonth() - 3);
     else if (range === "6mo") start.setMonth(start.getMonth() - 6);
     else if (range === "1y") start.setFullYear(start.getFullYear() - 1);
+    else if (range === "5y") start.setFullYear(start.getFullYear() - 5);
     else start.setMonth(start.getMonth() - 1);
 
     const result = await Y.historical(symbol, { period1: start, period2: end, interval, events: "history" });
@@ -302,6 +303,50 @@ export async function getCompanyInsights(symbol: string): Promise<CompanyNewsIte
     return items.slice(0, 25);
   } catch {
     return [];
+  }
+}
+
+/** Quote summary: market cap, 52w, volume, beta, P/E, etc. */
+export interface QuoteSummaryResult {
+  marketCap: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  averageVolume: number | null;
+  beta: number | null;
+  trailingPE: number | null;
+  forwardPE: number | null;
+  revenueGrowth: number | null;
+  exchange: string | null;
+  shortName: string | null;
+  longName: string | null;
+}
+
+export async function getQuoteSummary(symbol: string): Promise<QuoteSummaryResult | null> {
+  try {
+    const Y = getYahoo() as Record<string, unknown>;
+    const quoteSummary = Y?.quoteSummary as ((s: string, o: { modules: string[] }) => Promise<{ summaryDetail?: Record<string, unknown>; price?: Record<string, unknown> }>) | undefined;
+    if (typeof quoteSummary !== "function") return null;
+    const result = await quoteSummary(symbol, {
+      modules: ["summaryDetail", "price"],
+    });
+    if (!result) return null;
+    const summary = result.summaryDetail as Record<string, unknown> | undefined;
+    const price = result.price as Record<string, unknown> | undefined;
+    return {
+      marketCap: (summary?.marketCap as number) ?? null,
+      fiftyTwoWeekHigh: (summary?.fiftyTwoWeekHigh as number) ?? null,
+      fiftyTwoWeekLow: (summary?.fiftyTwoWeekLow as number) ?? null,
+      averageVolume: (summary?.averageVolume as number) ?? null,
+      beta: (summary?.beta as number) ?? null,
+      trailingPE: (summary?.trailingPE as number) ?? null,
+      forwardPE: (summary?.forwardPE as number) ?? null,
+      revenueGrowth: (summary?.revenueGrowth as number) ?? null,
+      exchange: (price?.exchangeName as string) ?? (price?.exchange as string) ?? null,
+      shortName: (price?.shortName as string) ?? null,
+      longName: (price?.longName as string) ?? null,
+    };
+  } catch {
+    return null;
   }
 }
 

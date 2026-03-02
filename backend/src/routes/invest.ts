@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { body, param, query, validationResult } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay, getTopGainers3d, getCompanyInsights } from "../services/marketData.js";
+import { getQuote, getOHLC, getQuotes, searchSymbols, getTopGainersDay, getTopGainers3d, getCompanyInsights, getQuoteSummary } from "../services/marketData.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -22,6 +22,137 @@ router.get("/accounts", async (req: Request, res: Response): Promise<void> => {
     },
   });
   res.json({ accounts });
+});
+
+/** GET /invest/portfolio – personal trade account dashboard: snapshot, positions, exposure, watchlist preview, recent activity (only for self_directed) */
+router.get("/portfolio", async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) return;
+  const userId = req.user.userId;
+
+  const [accounts, holdings, watchlistItems, recentTxns] = await Promise.all([
+    prisma.account.findMany({
+      where: { userId },
+      select: { id: true, type: true, name: true, balanceCents: true, currency: true },
+    }),
+    prisma.portfolioHolding.findMany({
+      where: { userId },
+      include: { account: { select: { id: true, type: true } } },
+    }),
+    prisma.watchlistItem.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { symbol: true },
+    }),
+    prisma.transaction.findMany({
+      where: { userId, type: { in: ["buy", "sell"] } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, type: true, symbol: true, amountCents: true, quantity: true, priceCents: true, createdAt: true },
+    }),
+  ]);
+
+  const selfDirected = accounts.find((a) => a.type === "self_directed");
+  const holding = accounts.find((a) => a.type === "holding");
+  const cashCents = selfDirected?.balanceCents ?? 0;
+  const positionHoldings = holdings.filter((h) => h.account.type === "self_directed");
+  const positionSymbols = [...new Set(positionHoldings.map((h) => h.symbol))];
+  const watchlistSymbols = watchlistItems.map((w) => w.symbol);
+
+  const [quotes, halalNames] = await Promise.all([
+    getQuotes([...positionSymbols, ...watchlistSymbols]),
+    prisma.halalSymbol.findMany({
+      where: { symbol: { in: [...positionSymbols, ...watchlistSymbols] } },
+      select: { symbol: true, name: true },
+    }),
+  ]);
+  const nameBySymbol = Object.fromEntries(halalNames.map((h) => [h.symbol, h.name ?? h.symbol]));
+
+  let totalValueCents = cashCents;
+  let costBasisCents = 0;
+  const positions: {
+    ticker: string;
+    companyName: string;
+    quantity: number;
+    avgCostCents: number;
+    currentPrice: number;
+    unrealizedPnlCents: number;
+    unrealizedPnlPercent: number;
+    complianceBadge: string;
+  }[] = [];
+
+  for (const h of positionHoldings) {
+    const qty = Number(h.quantity);
+    const cost = Math.round(qty * h.avgCostCents);
+    costBasisCents += cost;
+    const quote = quotes[h.symbol];
+    const currentPrice = quote?.price ?? h.avgCostCents / 100;
+    const valueCents = Math.round(qty * currentPrice * 100);
+    totalValueCents += valueCents;
+    const unrealizedPnlCents = valueCents - cost;
+    const unrealizedPnlPercent = cost > 0 ? (unrealizedPnlCents / cost) * 100 : 0;
+    positions.push({
+      ticker: h.symbol,
+      companyName: nameBySymbol[h.symbol] ?? h.symbol,
+      quantity: qty,
+      avgCostCents: h.avgCostCents,
+      currentPrice,
+      unrealizedPnlCents,
+      unrealizedPnlPercent,
+      complianceBadge: h.halalStatus === "approved" ? "Halal" : h.halalStatus,
+    });
+  }
+
+  const allTimePnlCents = totalValueCents - cashCents - costBasisCents;
+  const todayPnlCents = 0;
+
+  const largestPositionValueCents = positions.length
+    ? Math.max(...positions.map((p) => p.quantity * p.currentPrice * 100))
+    : 0;
+  const largestPositionPercent = totalValueCents > 0 ? (largestPositionValueCents / totalValueCents) * 100 : 0;
+  const cashAllocationPercent = totalValueCents > 0 ? (cashCents / totalValueCents) * 100 : 100;
+
+  const watchlistPreview = watchlistSymbols.map((symbol) => {
+    const q = quotes[symbol];
+    const price = q?.price ?? 0;
+    const changePercent = q?.changePercent ?? 0;
+    const sentiment = changePercent > 0 ? "positive" : changePercent < 0 ? "negative" : "neutral";
+    return { ticker: symbol, price, changePercent, sentiment, companyName: nameBySymbol[symbol] ?? symbol };
+  });
+
+  const recentActivity = recentTxns.map((t) => ({
+    type: t.type as "buy" | "sell",
+    ticker: t.symbol ?? "",
+    date: t.createdAt.toISOString(),
+    amountCents: t.amountCents,
+    quantity: t.quantity != null ? Number(t.quantity) : null,
+  }));
+
+  const chartRanges = ["1d", "1w", "1m", "3m", "1y", "all"] as const;
+  const chartData: { date: string; valueCents: number }[] = [];
+  const now = new Date();
+  chartData.push({ date: now.toISOString().slice(0, 10), valueCents: totalValueCents });
+
+  res.json({
+    snapshot: {
+      totalAccountValueCents: totalValueCents,
+      cashAvailableCents: cashCents,
+      todayPnlCents,
+      allTimePnlCents,
+      currency: "USD",
+    },
+    chartRanges,
+    chartData,
+    positions,
+    exposure: {
+      largestPositionPercent: Math.round(largestPositionPercent * 10) / 10,
+      sectorConcentrationPercent: null as number | null,
+      cashAllocationPercent: Math.round(cashAllocationPercent * 10) / 10,
+      largestPositionWarning: largestPositionPercent > 35,
+    },
+    watchlistPreview,
+    recentActivity,
+  });
 });
 
 /** GET /invest/profile – risk profile and allocation config */
@@ -338,12 +469,91 @@ router.get(
   }
 );
 
+/** GET /invest/market/:symbol/detail – full stock detail: quote, snapshot, sentiment, compliance (stock detail + trade page) */
+router.get(
+  "/market/:symbol/detail",
+  param("symbol").trim().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const symbol = (req.params.symbol as string).toUpperCase();
+    const [quote, summary, insights, halal] = await Promise.all([
+      getQuote(symbol),
+      getQuoteSummary(symbol),
+      getCompanyInsights(symbol),
+      prisma.halalSymbol.findUnique({ where: { symbol }, select: { symbol: true, name: true, lastVerifiedAt: true } }),
+    ]);
+    if (!quote) {
+      res.status(404).json({ error: "Quote not found for symbol." });
+      return;
+    }
+    const isHalal = !!halal;
+    const companyName = summary?.longName ?? summary?.shortName ?? halal?.name ?? symbol;
+    const exchange = summary?.exchange ?? "—";
+
+    const totalNews = insights.length;
+    const positive = insights.filter((i) => i.sentiment === "positive").length;
+    const negative = insights.filter((i) => i.sentiment === "negative").length;
+    const neutral = totalNews - positive - negative;
+    const sentimentScore = {
+      bullishPercent: totalNews > 0 ? Math.round((positive / totalNews) * 100) : 33,
+      neutralPercent: totalNews > 0 ? Math.round((neutral / totalNews) * 100) : 34,
+      bearishPercent: totalNews > 0 ? Math.round((negative / totalNews) * 100) : 33,
+    };
+    const topHeadlines = insights.slice(0, 3).map((i) => ({
+      title: i.title,
+      sentiment: i.sentiment,
+      publishedAt: i.publishedAt,
+      source: i.source,
+    }));
+
+    const marketSnapshot = {
+      marketCap: summary?.marketCap ?? null,
+      fiftyTwoWeekHigh: summary?.fiftyTwoWeekHigh ?? null,
+      fiftyTwoWeekLow: summary?.fiftyTwoWeekLow ?? null,
+      averageVolume: summary?.averageVolume ?? null,
+      beta: summary?.beta ?? null,
+      trailingPE: summary?.trailingPE ?? null,
+      revenueGrowthPercent: summary?.revenueGrowth != null ? Math.round(summary.revenueGrowth * 100) : null,
+    };
+
+    const rsiLabel = (): "Overbought" | "Neutral" | "Oversold" => "Neutral";
+    const volumeTrend = (): "Rising" | "Stable" | "Falling" => "Stable";
+    const earningsTrend = (): "Up" | "Flat" | "Down" => summary?.revenueGrowth != null ? (summary.revenueGrowth > 0.05 ? "Up" : summary.revenueGrowth < -0.05 ? "Down" : "Flat") : "Flat";
+
+    const shariaCompliance = {
+      compliant: isHalal,
+      lastScreeningDate: halal?.lastVerifiedAt?.toISOString() ?? null,
+      complianceSafetyScore: isHalal ? "Verified" : "Not screened",
+      debtRatioPercent: null as number | null,
+      haramRevenuePercent: null as number | null,
+      nearThresholdWarning: false,
+    };
+
+    res.json({
+      symbol,
+      quote: { price: quote.price, currency: quote.currency, changePercent: quote.changePercent, previousClose: quote.previousClose },
+      companyName,
+      exchange,
+      complianceBadge: isHalal ? "Halal Verified" : "Under Review",
+      marketSnapshot: {
+        ...marketSnapshot,
+        rsiLabel: rsiLabel(),
+        volumeTrend: volumeTrend(),
+        earningsTrend: earningsTrend(),
+      },
+      sentimentScore,
+      sentimentShift: null,
+      topHeadlines,
+      shariaCompliance,
+    });
+  }
+);
+
 /** GET /invest/market/:symbol/ohlc – OHLC for chart (query: interval=1d|1wk|1mo, range=5d|1mo|3mo|6mo|1y) */
 router.get(
   "/market/:symbol/ohlc",
   param("symbol").trim().notEmpty(),
   query("interval").optional().isIn(["1d", "1wk", "1mo"]),
-  query("range").optional().isIn(["5d", "1mo", "3mo", "6mo", "1y"]),
+  query("range").optional().isIn(["5d", "1mo", "3mo", "6mo", "1y", "5y"]),
   async (req: Request, res: Response): Promise<void> => {
     const symbol = (req.params.symbol as string).toUpperCase();
     const interval = (req.query.interval as "1d" | "1wk" | "1mo") || "1d";
