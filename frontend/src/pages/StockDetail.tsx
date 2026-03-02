@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { createChart, CandlestickData } from "lightweight-charts";
 import {
@@ -163,24 +163,46 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
 
   const loadOhlc = useCallback(async () => {
     if (!symbol) return;
-    const res = await getOHLC(symbol, interval, range);
-    const data: CandlestickData[] = (res.data || []).map((d: { time: number; open: number; high: number; low: number; close: number }) => ({
-      time: d.time as unknown as string,
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-    }));
-    setOhlcData(data);
+    try {
+      const res = await getOHLC(symbol, interval, range);
+      const raw = res.data || [];
+      const data: CandlestickData[] = raw.map((d: { time: number; open: number; high: number; low: number; close: number }) => ({
+        time: Number(d.time) as import("lightweight-charts").UTCTimestamp,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }));
+      setOhlcData(data);
+    } catch {
+      setOhlcData([]);
+    }
   }, [symbol, interval, range]);
 
   useEffect(() => {
     loadOhlc();
   }, [loadOhlc]);
 
+  const price = detail?.quote?.price ?? 0;
+  const previousClose = detail?.quote?.previousClose ?? price;
+  const fallbackCandles = useMemo((): CandlestickData[] => {
+    if (price <= 0) return [];
+    const now = new Date();
+    const today = Math.floor(now.getTime() / 1000);
+    const yesterday = today - 86400;
+    const prev = previousClose && previousClose !== price ? previousClose : price * 0.998;
+    return [
+      { time: yesterday as import("lightweight-charts").UTCTimestamp, open: prev, high: prev, low: prev, close: prev },
+      { time: today as import("lightweight-charts").UTCTimestamp, open: prev, high: Math.max(price, prev), low: Math.min(price, prev), close: price },
+    ];
+  }, [price, previousClose]);
+
+  const chartData = ohlcData.length > 0 ? ohlcData : fallbackCandles;
+
   useEffect(() => {
-    if (!chartContainerRef.current || ohlcData.length === 0) return;
-    const chart = createChart(chartContainerRef.current, {
+    if (!chartContainerRef.current || chartData.length === 0) return;
+    const container = chartContainerRef.current;
+    const chart = createChart(container, {
       layout: {
         background: { color: "#ffffff" },
         textColor: "#333",
@@ -190,6 +212,8 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
       rightPriceScale: { borderColor: "#e0e0e0", scaleMargins: { top: 0.1, bottom: 0.25 } },
       timeScale: { borderColor: "#e0e0e0" },
       crosshair: { vertLine: { labelBackgroundColor: "#2e7d32" }, horzLine: { labelBackgroundColor: "#2e7d32" } },
+      width: container.clientWidth,
+      height: 380,
     });
     const candlestick = chart.addCandlestickSeries({
       upColor: "#2e7d32",
@@ -199,14 +223,24 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
       wickDownColor: "#c62828",
       wickUpColor: "#2e7d32",
     });
-    candlestick.setData(ohlcData);
+    candlestick.setData(chartData);
     chart.timeScale().fitContent();
     chartRef.current = chart;
+
+    const handleResize = () => {
+      if (chartRef.current && container.parentElement) {
+        chartRef.current.applyOptions({ width: container.clientWidth });
+      }
+    };
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(container);
+
     return () => {
+      ro.disconnect();
       chart.remove();
       chartRef.current = null;
     };
-  }, [ohlcData]);
+  }, [chartData]);
 
   useEffect(() => {
     getWatchlist().then(setWatchlist);
@@ -228,7 +262,6 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
     } catch {}
   };
 
-  const price = detail?.quote?.price ?? 0;
   const selfDirected = accounts.find((a) => a.type === "self_directed");
   const balanceCents = selfDirected?.balanceCents ?? 0;
   const qtyFromInput = inputMode === "shares" ? parseFloat(quantity || "0") : price > 0 ? parseFloat(dollarAmount || "0") / price : 0;
@@ -368,7 +401,7 @@ export default function StockDetail({ defaultTicker = "AAPL" }: StockDetailProps
           <span className="stock-chart-hint">TradingView Lightweight Charts</span>
         </div>
         <div className="stock-chart-container" ref={chartContainerRef}>
-          {ohlcData.length === 0 && !loading && <div className="stock-chart-empty">No chart data</div>}
+          {chartData.length === 0 && !loading && <div className="stock-chart-empty">No chart data</div>}
         </div>
       </section>
 
