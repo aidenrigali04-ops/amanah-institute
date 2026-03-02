@@ -26,7 +26,16 @@ console.log("[Amanah API] Routes loaded.");
 console.log("[Amanah API] Imports done, setting up Express app (PORT=" + config.port + ")...");
 const app = express();
 
-// CORS: allow any origin (we use Bearer token, not cookies). Simpler = fewer 502/preflight issues.
+// CORS: set Access-Control-Allow-Origin on every response so preflight and actual requests pass
+app.use((_req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+  if (_req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
+});
 app.use(
   cors({
     origin: "*",
