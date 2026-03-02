@@ -110,6 +110,15 @@ export async function getOHLC(symbol: string, interval: string = "1d", range: st
   return res.json();
 }
 
+/** Instruments list for trading sidebar (symbol, name, price, changePercent) */
+export async function getInstruments(limit?: number): Promise<{ symbol: string; name: string; assetType: string; price: number; changePercent: number }[]> {
+  const url = limit != null ? `${API}/api/invest/market/instruments?limit=${limit}` : `${API}/api/invest/market/instruments`;
+  const res = await fetch(url, { headers: headers() });
+  if (!res.ok) return [];
+  const j = await res.json();
+  return j.instruments || [];
+}
+
 /** Stock detail: quote, company, snapshot, sentiment, compliance, capitalization (for stock detail + trade page) */
 export async function getStockDetail(symbol: string): Promise<{
   symbol: string;
@@ -223,8 +232,12 @@ export async function placeSell(symbol: string, quantity: number, priceCents: nu
   return j;
 }
 
-export async function getOrders(limit?: number) {
-  const url = limit ? `${API}/api/invest/orders?limit=${limit}` : `${API}/api/invest/orders`;
+export async function getOrders(params?: { limit?: number; status?: "pending" | "completed" | "cancelled" | "open" | "closed" }) {
+  const sp = new URLSearchParams();
+  if (params?.limit != null) sp.set("limit", String(params.limit));
+  if (params?.status) sp.set("status", params.status);
+  const q = sp.toString();
+  const url = q ? `${API}/api/invest/orders?${q}` : `${API}/api/invest/orders`;
   const res = await fetch(url, { headers: headers() });
   if (!res.ok) return [];
   const j = await res.json();

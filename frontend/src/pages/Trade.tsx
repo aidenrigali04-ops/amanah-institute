@@ -350,7 +350,7 @@ export default function Trade() {
 function OrdersTable({ onSelectSymbol, refresh }: { onSelectSymbol: (s: string) => void; refresh?: number }) {
   const [orders, setOrders] = useState<{ id: string; symbol: string; side: string; executionQuantity: number; executionPriceCents: number; status: string; createdAt: string }[]>([]);
   useEffect(() => {
-    getOrders(20).then(setOrders);
+    getOrders({ limit: 20 }).then(setOrders);
   }, [refresh]);
   return (
     <table className="pos-table">

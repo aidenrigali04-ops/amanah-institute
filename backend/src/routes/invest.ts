@@ -387,6 +387,33 @@ router.get("/market/feed", authMiddleware, async (req: Request, res: Response): 
   res.json({ feed, updatedAt: new Date().toISOString() });
 });
 
+/** GET /invest/market/instruments – list for trading sidebar: symbol, name, price, changePercent (for scrollable instrument list) */
+router.get(
+  "/market/instruments",
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  async (req: Request, res: Response): Promise<void> => {
+    const limit = Number(req.query.limit) || 60;
+    const halal = await prisma.halalSymbol.findMany({
+      orderBy: { symbol: "asc" },
+      take: limit,
+      select: { symbol: true, name: true, assetType: true },
+    });
+    const symbols = halal.map((h) => h.symbol);
+    const quotes = await getQuotes(symbols);
+    const instruments = halal.map((h) => {
+      const q = quotes[h.symbol];
+      return {
+        symbol: h.symbol,
+        name: h.name ?? h.symbol,
+        assetType: h.assetType ?? "EQ",
+        price: q?.price ?? 0,
+        changePercent: q?.changePercent ?? 0,
+      };
+    });
+    res.json({ instruments });
+  }
+);
+
 /** GET /invest/market/quotes – batch quotes (symbols=AAPL,MSFT,... or only halal if no param) */
 router.get(
   "/market/quotes",
@@ -1015,12 +1042,12 @@ router.get("/analytics", async (req: Request, res: Response): Promise<void> => {
   });
 });
 
-/** GET /invest/orders – order history */
+/** GET /invest/orders – order history / order book. status: pending | completed | cancelled | open (pending) | closed (completed+cancelled) */
 router.get(
   "/orders",
   [
     query("accountId").optional().isString(),
-    query("status").optional().isIn(["pending", "completed", "cancelled"]),
+    query("status").optional().isIn(["pending", "completed", "cancelled", "open", "closed"]),
     query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
   ],
   async (req: Request, res: Response): Promise<void> => {
@@ -1028,7 +1055,11 @@ router.get(
     const accountId = req.query.accountId as string | undefined;
     const status = req.query.status as string | undefined;
     const limit = Number(req.query.limit) || 50;
-    const where = { userId: req.user.userId, ...(accountId && { accountId }), ...(status && { status }) };
+    let where: { userId: string; accountId?: string; status?: string | { in: string[] } } = { userId: req.user.userId };
+    if (accountId) where.accountId = accountId;
+    if (status === "open") where.status = "pending";
+    else if (status === "closed") where.status = { in: ["completed", "cancelled"] };
+    else if (status) where.status = status;
     const orders = await prisma.order.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -1050,9 +1081,18 @@ router.get(
     });
     res.json({
       orders: orders.map((o) => ({
-        ...o,
+        id: o.id,
+        symbol: o.symbol,
+        side: o.side,
+        orderType: o.orderType,
         quantity: Number(o.quantity),
+        limitPriceCents: o.limitPriceCents,
+        status: o.status,
+        executionPriceCents: o.executionPriceCents,
         executionQuantity: o.executionQuantity != null ? Number(o.executionQuantity) : null,
+        createdAt: o.createdAt.toISOString(),
+        completedAt: o.completedAt?.toISOString() ?? null,
+        accountId: o.accountId,
       })),
     });
   }

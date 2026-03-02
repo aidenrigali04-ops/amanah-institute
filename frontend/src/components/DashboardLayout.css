@@ -264,3 +264,18 @@
   overflow: auto;
   padding: 24px;
 }
+
+.dashboard-content-full {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dashboard-content-full-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

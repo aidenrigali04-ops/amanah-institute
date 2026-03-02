@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isTradingExecution = location.pathname === "/invest/trade";
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationDismissed, setNotificationDismissed] = useState(false);
@@ -71,6 +73,7 @@ export default function DashboardLayout() {
         </nav>
       </aside>
       <div className="dashboard-main">
+        {!isTradingExecution && (
         <header className="dashboard-header">
           <div className="header-search">
             <span className="header-search-icon" aria-hidden>⌕</span>
@@ -140,8 +143,15 @@ export default function DashboardLayout() {
             </div>
           </div>
         </header>
-        <main className="dashboard-content">
-          <Outlet />
+        )}
+        <main className={`dashboard-content ${isTradingExecution ? "dashboard-content-full" : ""}`}>
+          {isTradingExecution ? (
+            <div className="dashboard-content-full-inner">
+              <Outlet />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

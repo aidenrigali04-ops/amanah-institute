@@ -7,6 +7,7 @@ import AcademyOnboarding from "./pages/AcademyOnboarding";
 import TradingOnboarding from "./pages/TradingOnboarding";
 import TradingPortfolio from "./pages/TradingPortfolio";
 import StockDetail from "./pages/StockDetail";
+import TradingExecution from "./pages/TradingExecution";
 import LessonViewer from "./pages/LessonViewer";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
@@ -35,7 +36,7 @@ function App() {
             <Route path="invest" element={<TradingPortfolio />} />
             <Route path="invest/onboarding" element={<TradingOnboarding />} />
             <Route path="invest/stock/:ticker" element={<StockDetail />} />
-            <Route path="invest/trade" element={<StockDetail defaultTicker="AAPL" />} />
+            <Route path="invest/trade" element={<TradingExecution />} />
             <Route path="invest/transactions" element={<Placeholder title="Transactions" />} />
             <Route path="invest/automated" element={<Placeholder title="Automated Account" />} />
             <Route path="invest/screener" element={<Placeholder title="Stocks Screener" />} />
