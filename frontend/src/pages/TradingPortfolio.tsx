@@ -12,6 +12,28 @@ const CHART_RANGE_LABELS: Record<string, string> = {
   all: "All",
 };
 
+/** Empty portfolio shape so we always render the full UI; stats show 0 until user has data. */
+const EMPTY_PORTFOLIO: Awaited<ReturnType<typeof getPortfolio>> = {
+  snapshot: {
+    totalAccountValueCents: 0,
+    cashAvailableCents: 0,
+    todayPnlCents: 0,
+    allTimePnlCents: 0,
+    currency: "USD",
+  },
+  chartRanges: ["1d", "1w", "1m", "3m", "1y", "all"],
+  chartData: [],
+  positions: [],
+  exposure: {
+    largestPositionPercent: 0,
+    sectorConcentrationPercent: null,
+    cashAllocationPercent: 100,
+    largestPositionWarning: false,
+  },
+  watchlistPreview: [],
+  recentActivity: [],
+};
+
 function formatCents(cents: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -28,9 +50,9 @@ function formatPercent(n: number): string {
 
 export default function TradingPortfolio() {
   const navigate = useNavigate();
-  const [data, setData] = useState<Awaited<ReturnType<typeof getPortfolio>> | null>(null);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getPortfolio>>>(EMPTY_PORTFOLIO);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [chartRange, setChartRange] = useState<string>("1m");
 
   useEffect(() => {
@@ -45,11 +67,16 @@ export default function TradingPortfolio() {
         return getPortfolio();
       })
       .then((d) => {
-        if (cancelled || !d) return;
-        setData(d);
+        if (cancelled) return;
+        if (d) setData(d);
+        else setData(EMPTY_PORTFOLIO);
+        setDataError(null);
       })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+      .catch(() => {
+        if (!cancelled) {
+          setData(EMPTY_PORTFOLIO);
+          setDataError("Could not load latest data. Showing empty account.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -67,18 +94,15 @@ export default function TradingPortfolio() {
     );
   }
 
-  if (error || !data) {
-    return (
-      <div className="trading-portfolio">
-        <div className="trading-portfolio-error">{error || "Unable to load portfolio."}</div>
-      </div>
-    );
-  }
-
   const { snapshot, chartData, positions, exposure, watchlistPreview, recentActivity } = data;
 
   return (
     <div className="trading-portfolio">
+      {dataError && (
+        <div className="trading-portfolio-banner" role="status">
+          {dataError}
+        </div>
+      )}
       {/* 1. Portfolio Snapshot + Chart */}
       <section className="trading-snapshot" aria-label="Portfolio snapshot">
         <div className="trading-snapshot-grid">

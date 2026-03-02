@@ -17,6 +17,16 @@
   color: #b71c1c;
 }
 
+.trading-portfolio-banner {
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  color: #5d4200;
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+}
+
 /* 1. Snapshot */
 .trading-snapshot {
   background: #fff;
