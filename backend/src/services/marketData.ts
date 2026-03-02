@@ -6,7 +6,9 @@ import YahooFinance from "yahoo-finance2";
 
 let yahoo: InstanceType<typeof YahooFinance> | null = null;
 function getYahoo(): InstanceType<typeof YahooFinance> {
-  if (!yahoo) yahoo = new YahooFinance();
+  if (!yahoo) {
+    yahoo = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
+  }
   return yahoo;
 }
 
@@ -55,17 +57,18 @@ export async function getOHLC(
     else if (range === "5y") start.setFullYear(start.getFullYear() - 5);
     else start.setMonth(start.getMonth() - 1);
 
-    const result = await Y.historical(symbol, { period1: start, period2: end, interval, events: "history" });
-    if (!Array.isArray(result) || result.length === 0) return [];
-    return result
-      .filter((q: { open?: number; close?: number }) => q.open != null && q.close != null)
-      .map((q: { date: Date; open: number; high: number; low: number; close: number; volume?: number }) => ({
+    const result = await Y.chart(symbol, { period1: start, period2: end, interval });
+    const quotes = result?.quotes;
+    if (!Array.isArray(quotes) || quotes.length === 0) return [];
+    return quotes
+      .filter((q: { open?: number | null; close?: number | null }) => (q.open ?? null) != null && (q.close ?? null) != null)
+      .map((q: { date: Date; open?: number | null; high?: number | null; low?: number | null; close?: number | null; volume?: number | null }) => ({
         time: Math.floor(new Date(q.date).getTime() / 1000),
-        open: q.open,
-        high: q.high,
-        low: q.low,
-        close: q.close,
-        volume: q.volume,
+        open: Number(q.open),
+        high: Number(q.high),
+        low: Number(q.low),
+        close: Number(q.close),
+        volume: q.volume ?? undefined,
       }));
   } catch {
     return [];
@@ -186,10 +189,10 @@ export async function getTopGainers3d(
     await Promise.all(
       symbols.map(async (symbol) => {
         try {
-          const result = await Y.historical(symbol, { period1: start, period2: end, interval: "1d", events: "history" });
-          const arr = Array.isArray(result) ? result : [];
-          const sorted = arr
-            .filter((q: { close?: number }) => q?.close != null)
+          const result = await Y.chart(symbol, { period1: start, period2: end, interval: "1d" });
+          const quotes = result?.quotes ?? [];
+          const sorted = quotes
+            .filter((q: { close?: number | null }) => (q?.close ?? null) != null)
             .sort((a: { date: Date }, b: { date: Date }) => new Date(a.date).getTime() - new Date(b.date).getTime());
           if (sorted.length < 2) return;
           const first = sorted[0] as { close: number; date: Date };
@@ -323,7 +326,7 @@ export interface QuoteSummaryResult {
 
 export async function getQuoteSummary(symbol: string): Promise<QuoteSummaryResult | null> {
   try {
-    const Y = getYahoo() as Record<string, unknown>;
+    const Y = getYahoo() as unknown as Record<string, unknown>;
     const quoteSummary = Y?.quoteSummary as ((s: string, o: { modules: string[] }) => Promise<{ summaryDetail?: Record<string, unknown>; price?: Record<string, unknown> }>) | undefined;
     if (typeof quoteSummary !== "function") return null;
     const result = await quoteSummary(symbol, {

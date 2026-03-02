@@ -26,7 +26,10 @@ router.get("/accounts", async (req: Request, res: Response): Promise<void> => {
 
 /** GET /invest/portfolio – personal trade account dashboard: snapshot, positions, exposure, watchlist preview, recent activity (only for self_directed) */
 router.get("/portfolio", async (req: Request, res: Response): Promise<void> => {
-  if (!req.user) return;
+  if (!req.user) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
   const userId = req.user.userId;
   try {
   const [accounts, holdings, watchlistItems, recentTxns] = await Promise.all([
