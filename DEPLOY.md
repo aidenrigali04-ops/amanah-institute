@@ -57,7 +57,7 @@ Follow these steps to connect your GitHub repo to Railway and Vercel.
 Railway should use `backend/railway.toml` when Root Directory is `backend`. Confirm:
 
 - **Build command:** `npm run build` (runs `prisma generate` and `tsc`)
-- **Start command:** `npx prisma migrate deploy && node dist/index.js`
+- **Start command:** Use **`./start.sh`** (see backend/start.sh). If Railway has a custom Start Command, set it to `./start.sh` or remove it; otherwise the app may not log or respond (502/CORS).
 
 If you don’t use `railway.toml`, set these in the service **Settings** → **Deploy**.
 

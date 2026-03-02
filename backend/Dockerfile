@@ -13,6 +13,9 @@ ENV DATABASE_URL="postgresql://localhost:5432/dummy"
 RUN npx prisma generate
 
 COPY tsconfig.json ./
+# Bust cache so Railway builds fresh (was serving stale code; no CORS/earlyLog in image)
+ARG CACHEBUST=2
+RUN echo "Rebuild: $CACHEBUST"
 COPY src ./src/
 RUN npm run build
 
