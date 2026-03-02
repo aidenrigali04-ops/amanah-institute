@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+console.log("[Amanah API] config loaded (PORT=" + (Number(process.env.PORT) || 4000) + ")");
+
 export const config = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || "development",
