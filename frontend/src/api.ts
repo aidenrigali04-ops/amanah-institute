@@ -11,7 +11,7 @@ const API = getApiBase();
 export async function checkBackendHealth(): Promise<{ ok: true } | { ok: false; reason: "MISSING_API_URL" | "NETWORK_OR_CORS" }> {
   if (!API) return { ok: false, reason: "MISSING_API_URL" };
   try {
-    const res = await fetch(`${API}/health`, { method: "GET", cache: "no-store" });
+    const res = await fetch(`${API}/health`, { method: "GET", cache: "no-store", mode: "cors" });
     if (res.ok) return { ok: true };
     return { ok: false, reason: "NETWORK_OR_CORS" };
   } catch {
@@ -72,6 +72,7 @@ export async function register(data: { email: string; password: string; firstNam
       method: "POST",
       headers: headers(),
       body: JSON.stringify(data),
+      mode: "cors",
     });
   } catch {
     const hint = !API

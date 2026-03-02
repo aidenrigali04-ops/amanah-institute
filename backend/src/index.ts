@@ -57,6 +57,10 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Root (for Railway/load balancer health checks that hit /)
+app.get("/", (_req, res) => {
+  res.json({ ok: true, service: "amanah-institute-api" });
+});
 // Health
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "amanah-institute-api" });
