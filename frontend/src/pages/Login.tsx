@@ -45,9 +45,9 @@ export default function Login() {
         <div className="auth-logo">
           <img
             src="/amanah-logo.png"
-            alt="Amanah Institute – open book and mosque dome with crescent and star; Arabic أمانة and AMANAH"
-            width={140}
-            height={160}
+            alt="Amanah Institute – mosque dome, crescent and star, Arabic أمانة and AMANAH, open book"
+            width={108}
+            height={123}
             decoding="async"
             fetchPriority="high"
           />

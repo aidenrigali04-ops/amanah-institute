@@ -29,7 +29,7 @@ export default function DashboardLayout() {
     <div className="dashboard-app">
       <aside className="dashboard-sidebar">
         <NavLink to="/dashboard" className="sidebar-logo">
-          <img src="/amanah-logo.png" alt="Amanah" width={120} height={48} />
+          <img src="/amanah-logo.png" alt="Amanah Institute" width={96} height={40} />
         </NavLink>
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
