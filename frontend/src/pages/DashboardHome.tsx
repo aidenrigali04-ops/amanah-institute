@@ -40,7 +40,7 @@ export default function DashboardHome() {
   if (error) {
     return (
       <div className="dashboard-home">
-        <p className="dashboard-error">{error}</p>
+        <p className="dashboard-home-error">{error}</p>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function DashboardHome() {
   if (loading || !data) {
     return (
       <div className="dashboard-home">
-        <div className="dashboard-loading">Loading dashboard…</div>
+        <div className="dashboard-home-loading">Loading…</div>
       </div>
     );
   }
@@ -58,93 +58,75 @@ export default function DashboardHome() {
   const path: OnboardingPath = data.onboardingPath ?? "both";
   const academyDone = !!data.academyPersonalized;
   const tradingDone = !!data.tradingAccountOpened;
-
   const showAcademyCta = (path === "business" || path === "both" || path === "not_sure") && !academyDone;
   const showTradingCta = (path === "investing" || path === "both" || path === "not_sure") && !tradingDone;
   const showHeroCtas = showAcademyCta || showTradingCta;
 
   return (
     <div className="dashboard-home">
-      {/* Hero CTAs only when at least one step is not done; hide section once both academy personalized and trading opened */}
       {showHeroCtas && (
-        <section className="dashboard-hero-ctas" aria-label="Next steps based on your focus">
+        <section className="dashboard-home-hero" aria-label="Next steps">
           {path === "investing" && showTradingCta && (
-            <div className="dashboard-hero-single">
-              <button
-                type="button"
-                className="dashboard-hero-btn"
-                onClick={() => navigate("/invest/onboarding")}
-              >
-                Open My Trading Account
-              </button>
-            </div>
+            <button type="button" className="dashboard-home-hero-btn" onClick={() => navigate("/invest/onboarding")}>
+              Open My Trading Account
+            </button>
           )}
           {path === "business" && showAcademyCta && (
-            <div className="dashboard-hero-single">
-              <button
-                type="button"
-                className="dashboard-hero-btn"
-                onClick={() => navigate("/academy/onboarding")}
-              >
-                Personalize My Business Academy
-              </button>
-            </div>
+            <button type="button" className="dashboard-home-hero-btn" onClick={() => navigate("/academy/onboarding")}>
+              Personalize My Business Academy
+            </button>
           )}
           {(path === "both" || path === "not_sure") && (showAcademyCta || showTradingCta) && (
-            <div className="dashboard-hero-dual">
+            <>
               {showAcademyCta && (
-                <button
-                  type="button"
-                  className="dashboard-hero-btn"
-                  onClick={() => navigate("/academy/onboarding")}
-                >
+                <button type="button" className="dashboard-home-hero-btn" onClick={() => navigate("/academy/onboarding")}>
                   Personalize My Business Academy
                 </button>
               )}
               {showTradingCta && (
-                <button
-                  type="button"
-                  className="dashboard-hero-btn"
-                  onClick={() => navigate("/invest/onboarding")}
-                >
+                <button type="button" className="dashboard-home-hero-btn" onClick={() => navigate("/invest/onboarding")}>
                   Open My Trading Account
                 </button>
               )}
-            </div>
+            </>
           )}
         </section>
       )}
 
-      <div className="dashboard-cards">
-        {/* Row 1: Market News + Top Gainers */}
-        <section className="dashboard-panel panel-wide">
-          <h2 className="panel-title">Market News Updates</h2>
-          <div className="panel-body">
+      <div className="dashboard-home-grid">
+        {/* Row 1: Market News (left) | Top Gainers + Start Trading (right) */}
+        <section className="dashboard-home-card dashboard-home-card-wide" aria-labelledby="card-market-news">
+          <h2 id="card-market-news" className="dashboard-home-card-title">Market News Updates</h2>
+          <div className="dashboard-home-card-body">
             {feedItems.length === 0 ? (
-              <p className="panel-empty">No market updates yet. Add symbols to your watchlist or check back later.</p>
+              <p className="dashboard-home-empty">No market updates yet. Add symbols to your watchlist or check back later.</p>
             ) : (
-              feedItems.slice(0, 5).map((item, i) => (
-                <Link
-                  to="/dashboard/feed"
-                  className={`feed-item sentiment-${item.sentiment}`}
-                  key={i}
-                >
-                  <span className="feed-title">{item.title}</span>
-                  {item.summary && <span className="feed-summary">{item.summary}</span>}
-                  {item.symbol && <span className="feed-symbol">{item.symbol}</span>}
-                </Link>
-              ))
+              <ul className="dashboard-home-feed-list">
+                {feedItems.slice(0, 4).map((item, i) => (
+                  <li key={i}>
+                    <Link to="/dashboard/feed" className={`dashboard-home-feed-item sentiment-${item.sentiment}`}>
+                      {item.symbol && item.changePercent != null && (
+                        <span className="dashboard-home-feed-highlight">{item.symbol} {item.changePercent >= 0 ? "+" : ""}{item.changePercent.toFixed(1)}%</span>
+                      )}
+                      <span className="dashboard-home-feed-title">{item.title}</span>
+                      {item.summary && <span className="dashboard-home-feed-summary">{item.summary}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </section>
-        <section className="dashboard-panel">
-          <h2 className="panel-title">Top Gainers Today</h2>
-          <div className="panel-body">
-            <div className="top-gainers-controls">
+
+        <section className="dashboard-home-card" aria-labelledby="card-top-gainers">
+          <h2 id="card-top-gainers" className="dashboard-home-card-title">Top Gainers Today</h2>
+          <div className="dashboard-home-card-body">
+            <div className="dashboard-home-gainers-control">
               <select
                 value={topGainersPeriod}
                 onChange={(e) => setTopGainersPeriod(e.target.value as "1d" | "1wk" | "1mo")}
-                className="gainers-select"
+                className="dashboard-home-gainers-select"
+                aria-label="Time period"
               >
                 <option value="1d">1 Day</option>
                 <option value="1wk">1 Week</option>
@@ -152,107 +134,117 @@ export default function DashboardHome() {
               </select>
             </div>
             {gainers.length === 0 ? (
-              <p className="panel-empty">No gainers data.</p>
+              <p className="dashboard-home-empty">No gainers data.</p>
             ) : (
-              <ul className="gainers-list">
-                {gainers.slice(0, 8).map((g) => (
-                  <li key={g.symbol} className="gainer-row">
-                    <span className="gainer-symbol">{g.symbol}</span>
-                    <span className="gainer-pct positive">+{g.changePercent.toFixed(2)}%</span>
+              <ul className="dashboard-home-gainers-list">
+                {gainers.slice(0, 6).map((g) => (
+                  <li key={g.symbol} className="dashboard-home-gainer-row">
+                    <span className="dashboard-home-gainer-symbol">{g.symbol}</span>
+                    <span className="dashboard-home-gainer-pct positive">+{g.changePercent.toFixed(2)}%</span>
                   </li>
                 ))}
               </ul>
             )}
-            <Link to="/invest" className="panel-cta-btn">Start Trading</Link>
+            <Link to="/invest/trade" className="dashboard-home-cta dashboard-home-cta-primary">Start Trading</Link>
           </div>
         </section>
 
-        {/* Row 2: Academy topic, Test knowledge, Workspace */}
-        {data.academyTopic && (
-          <section className="dashboard-panel">
-            <h2 className="panel-title">{data.academyTopic.title}</h2>
-            <div className="panel-body">
-              <p className="panel-text">{data.academyTopic.summary || "Geographic analysis can be a HUGE reason why businesses make or break it."}</p>
-              <Link to={data.academyTopic.link || data.academyDashboardUrl} className="panel-link">Read more →</Link>
-            </div>
-          </section>
-        )}
-        <section className="dashboard-panel">
-          <h2 className="panel-title">Test My Knowledge</h2>
-          <div className="panel-body">
-            <p className="panel-text">How important is branding?</p>
-            <div className="test-dots">
-              <span className="dot" /><span className="dot active" /><span className="dot" />
-            </div>
-            <Link to={data.testMyKnowledgeUrl || "/academy/test"} className="panel-arrow">→</Link>
+        {/* Row 2: Academy topic | Test My Knowledge | Go to Workspace */}
+        <section className="dashboard-home-card dashboard-home-card-wide" aria-labelledby="card-academy-topic">
+          <h2 id="card-academy-topic" className="dashboard-home-card-title">
+            {data.academyTopic?.title ?? "How important is location for a small business?"}
+          </h2>
+          <div className="dashboard-home-card-body">
+            <p className="dashboard-home-text">
+              {data.academyTopic?.summary ?? "Geographic analysis can be a HUGE reason why businesses make or break it."}
+            </p>
+            <Link to={data.academyTopic?.link ?? data.academyDashboardUrl ?? "/academy"} className="dashboard-home-link">Read more →</Link>
           </div>
         </section>
-        <section className="dashboard-panel">
-          <h2 className="panel-title">Go to Workspace</h2>
-          <div className="panel-body">
+
+        <section className="dashboard-home-card" aria-labelledby="card-test-knowledge">
+          <h2 id="card-test-knowledge" className="dashboard-home-card-title">Test My Knowledge</h2>
+          <div className="dashboard-home-card-body">
+            <p className="dashboard-home-text">How important is branding?</p>
+            <div className="dashboard-home-test-options" role="radiogroup" aria-label="Answer options">
+              <span className="dashboard-home-test-dot" aria-hidden />
+              <span className="dashboard-home-test-dot active" aria-hidden />
+              <span className="dashboard-home-test-dot" aria-hidden />
+            </div>
+            <Link to={data.testMyKnowledgeUrl ?? "/academy"} className="dashboard-home-test-next" aria-label="Next question">→</Link>
+          </div>
+        </section>
+
+        <section className="dashboard-home-card" aria-labelledby="card-workspace">
+          <h2 id="card-workspace" className="dashboard-home-card-title">Go to Workspace</h2>
+          <div className="dashboard-home-card-body">
             {data.workspace?.companyName ? (
-              <p className="panel-text">{data.workspace.companyName}</p>
+              <p className="dashboard-home-text">{data.workspace.companyName}</p>
             ) : (
-              <p className="panel-empty">Create your company branding and campaigns.</p>
+              <p className="dashboard-home-empty">Create your company branding and campaigns.</p>
             )}
-            <Link to={data.workspaceUrl || "/workspace"} className="panel-cta-btn outline">Open Workspace</Link>
+            <Link to={data.workspaceUrl ?? "/workspace"} className="dashboard-home-cta dashboard-home-cta-outline">Open Workspace</Link>
           </div>
         </section>
 
-        {/* Row 3: New Tools, My Academy Dashboard */}
-        <section className="dashboard-panel panel-wide">
-          <h2 className="panel-title">New Tools Release</h2>
-          <div className="panel-body">
-            {data.toolReleases?.length === 0 ? (
-              <p className="panel-empty">No new tools.</p>
+        {/* Row 3: New Tools Release | My Academy Dashboard */}
+        <section className="dashboard-home-card dashboard-home-card-wide" aria-labelledby="card-tools">
+          <h2 id="card-tools" className="dashboard-home-card-title">New Tools Release</h2>
+          <div className="dashboard-home-card-body">
+            {!data.toolReleases?.length ? (
+              <ul className="dashboard-home-tools-list">
+                <li className="dashboard-home-tool-item">Loveable released new AI excelling in generating content images</li>
+                <li className="dashboard-home-tool-item">ChatGPT</li>
+              </ul>
             ) : (
-              <ul className="tools-list">
-                {data.toolReleases?.map((t) => (
-                  <li key={t.id} className="tool-item">
-                    <span className="tool-name">{t.name}</span>
-                    {t.description && <span className="tool-desc">{t.description}</span>}
+              <ul className="dashboard-home-tools-list">
+                {data.toolReleases.map((t) => (
+                  <li key={t.id} className="dashboard-home-tool-item">
+                    <span className="dashboard-home-tool-name">{t.name}</span>
+                    {t.description && <span className="dashboard-home-tool-desc">{t.description}</span>}
                   </li>
                 ))}
               </ul>
             )}
           </div>
         </section>
-        <section className="dashboard-panel">
-          <h2 className="panel-title">My Academy Dashboard</h2>
-          <div className="panel-body">
-            <p className="panel-text">Personalize your academy and track your progress.</p>
-            <Link to={data.academyDashboardUrl || "/academy"} className="panel-cta-btn">Personalize Academy (recommended)</Link>
+
+        <section className="dashboard-home-card" aria-labelledby="card-academy-dash">
+          <h2 id="card-academy-dash" className="dashboard-home-card-title">My Academy Dashboard</h2>
+          <div className="dashboard-home-card-body">
+            <p className="dashboard-home-text">Personalize your academy and track your progress.</p>
+            <Link to={data.academyDashboardUrl ?? "/academy"} className="dashboard-home-cta dashboard-home-cta-primary">Go to Academy</Link>
           </div>
         </section>
 
-        {/* Row 4: Chat Feeds, Direct Messages */}
-        <section className="dashboard-panel panel-wide">
-          <h2 className="panel-title">Chat Feeds</h2>
-          <div className="panel-body">
-            {data.chatUpdates?.items?.length === 0 ? (
-              <p className="panel-empty">No recent activity. Join the community.</p>
+        {/* Row 4: Chat Feeds | Direct Messages */}
+        <section className="dashboard-home-card dashboard-home-card-half" aria-labelledby="card-chat">
+          <h2 id="card-chat" className="dashboard-home-card-title">Chat Feeds</h2>
+          <div className="dashboard-home-card-body">
+            {!data.chatUpdates?.items?.length ? (
+              <p className="dashboard-home-empty">No recent activity. Join the community.</p>
             ) : (
-              <ul className="chat-list">
-                {data.chatUpdates?.items?.slice(0, 4).map((c) => (
-                  <li key={c.id} className="chat-item">
-                    <span className="chat-title">{c.title}</span>
-                    <span className="chat-meta">{c.author.firstName} · {c.channel.name}</span>
+              <ul className="dashboard-home-chat-list">
+                {data.chatUpdates.items.slice(0, 4).map((c) => (
+                  <li key={c.id} className="dashboard-home-chat-item">
+                    <span className="dashboard-home-chat-title">{c.title}</span>
+                    <span className="dashboard-home-chat-meta">{c.author.firstName} · {c.channel.name}</span>
                   </li>
                 ))}
               </ul>
             )}
-            <Link to={data.chatUpdates?.communityPageUrl || "/community"} className="panel-link">View all →</Link>
+            <Link to={data.chatUpdates?.communityPageUrl ?? "/community"} className="dashboard-home-link">View all →</Link>
           </div>
         </section>
-        <section className="dashboard-panel panel-wide">
-          <h2 className="panel-title">Direct Messages</h2>
-          <div className="panel-body">
-            <p className="panel-empty">Your DMs appear here. Start a conversation from Community.</p>
-            <Link to="/community" className="panel-link">Go to Community →</Link>
+
+        <section className="dashboard-home-card dashboard-home-card-half" aria-labelledby="card-dm">
+          <h2 id="card-dm" className="dashboard-home-card-title">Direct Messages</h2>
+          <div className="dashboard-home-card-body">
+            <p className="dashboard-home-empty">Your DMs appear here. Start a conversation from Community.</p>
+            <Link to="/community" className="dashboard-home-link">Go to Community →</Link>
           </div>
         </section>
       </div>
-
     </div>
   );
 }
