@@ -1,4 +1,4 @@
-/* Dashboard layout: clean white + light green accents */
+/* Dashboard layout – 2026: subtle shadows, soft hovers, refined borders */
 
 .dashboard-app {
   display: flex;
@@ -10,7 +10,7 @@
   width: 232px;
   flex-shrink: 0;
   background: #fff;
-  border-right: 1px solid #e8f0e9;
+  border-right: 1px solid rgba(232, 240, 233, 0.9);
   display: flex;
   flex-direction: column;
   padding: 20px 0;
@@ -18,7 +18,7 @@
 
 .sidebar-logo {
   padding: 0 20px 20px;
-  border-bottom: 1px solid #e8f0e9;
+  border-bottom: 1px solid rgba(232, 240, 233, 0.8);
   margin-bottom: 16px;
   display: block;
 }
@@ -55,16 +55,16 @@
   color: #3c4043;
   text-decoration: none;
   font-size: 0.9rem;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-item:hover {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.5);
   color: #1e7d32;
 }
 
 .sidebar-item.active {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.6);
   color: #1e7d32;
   font-weight: 600;
   border-left: 3px solid #2e7d32;
@@ -82,7 +82,7 @@
   height: 56px;
   flex-shrink: 0;
   background: #fff;
-  border-bottom: 1px solid #e8f0e9;
+  border-bottom: 1px solid rgba(232, 240, 233, 0.8);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -96,16 +96,20 @@
   display: flex;
   align-items: center;
   background: #fff;
-  border: 1px solid #dadce0;
+  border: 1px solid rgba(218, 220, 224, 0.7);
   border-radius: 10px;
   padding: 0 14px;
   height: 44px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-search:hover {
+  border-color: rgba(184, 212, 186, 0.4);
 }
 
 .header-search:focus-within {
-  border-color: #b8d4ba;
-  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.08);
+  border-color: rgba(46, 125, 50, 0.4);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.06);
 }
 
 .header-search-icon {
@@ -139,17 +143,17 @@
   height: 40px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #2e7d32;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition: background 0.2s ease;
 }
 
 .header-icon-btn:hover {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.5);
 }
 
 .header-icon {
@@ -168,12 +172,12 @@
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 4px;
+  margin-top: 6px;
   width: 320px;
   background: #fff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.04);
   z-index: 100;
   padding: 12px;
 }
@@ -198,18 +202,19 @@
 
 .notification-cta {
   display: inline-block;
-  padding: 6px 12px;
-  background: #388e3c;
+  padding: 8px 14px;
+  background: #2e7d32;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .notification-cta:hover {
-  background: #2e7d32;
+  background: #256b29;
 }
 
 .notification-dismiss {
@@ -236,35 +241,36 @@
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 4px;
+  margin-top: 6px;
   min-width: 160px;
   background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.04);
   z-index: 100;
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .profile-menu a,
 .profile-menu button {
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: left;
   border: none;
   background: none;
-  color: #1a1a1a;
+  color: #202124;
   text-decoration: none;
   font-size: 0.875rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
 }
 
 .profile-menu a:hover,
 .profile-menu button:hover {
-  background: #f5f5f5;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .dashboard-content {

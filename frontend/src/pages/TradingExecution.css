@@ -75,7 +75,7 @@
 }
 
 .trading-topbar-instant:hover {
-  background: #1b5e20;
+  background: #256b29;
 }
 
 .trading-topbar-icons {
@@ -99,7 +99,7 @@
 }
 
 .trading-topbar-icon:hover {
-  background: #f3f4f6;
+  background: rgba(0, 0, 0, 0.04);
   color: #1a1a1a;
 }
 
@@ -119,9 +119,13 @@
   border-radius: 6px;
 }
 
-.trading-topbar-nav a:hover,
+.trading-topbar-nav a:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1a1a1a;
+}
+
 .trading-topbar-nav a.active {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.5);
   color: #2e7d32;
 }
 
@@ -184,7 +188,7 @@
 }
 
 .trading-instrument:hover {
-  background: #f3f4f6;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .trading-instrument.active {
@@ -313,10 +317,11 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .trading-tab:hover {
-  color: #1a1a1a;
+  color: #374151;
 }
 
 .trading-tab.active {
@@ -366,7 +371,7 @@
 }
 
 .trading-chart-tf:hover {
-  background: #f3f4f6;
+  background: rgba(0, 0, 0, 0.04);
   color: #1a1a1a;
 }
 
@@ -420,8 +425,13 @@
   color: #6b7280;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.trading-orderbook-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .trading-orderbook-toggle.active {
@@ -485,8 +495,9 @@
   font-size: 1rem;
   font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .trading-orderbook-btn.buy {
@@ -495,7 +506,7 @@
 }
 
 .trading-orderbook-btn.buy:hover {
-  background: #1b5e20;
+  background: #256b29;
 }
 
 .trading-orderbook-btn.sell {
@@ -565,7 +576,7 @@
 }
 
 .trading-watchlist-row:hover {
-  background: #f3f4f6;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .trading-watchlist-symbol {

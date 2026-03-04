@@ -1,4 +1,4 @@
-/* Dashboard Home – clean, professional, white background, light green accents */
+/* Dashboard Home – 2026-style: subtle shadows, soft hovers, clean hierarchy */
 
 .dashboard-home {
   max-width: 1280px;
@@ -37,15 +37,18 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(46, 125, 50, 0.12);
 }
 
 .dashboard-home-hero-btn:hover {
-  background: #1b5e20;
+  background: #256b29;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.18);
 }
 
 .dashboard-home-hero-btn:active {
   transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(46, 125, 50, 0.12);
 }
 
 /* Grid: 3 columns on large, 2 on medium, 1 on small */
@@ -68,14 +71,21 @@
   }
 }
 
-/* Cards – thin light green border, no generic shadow */
+/* Cards – soft border, subtle shadow, lift on hover */
 .dashboard-home-card {
   background: #fff;
-  border: 1px solid #b8d4ba;
+  border: 1px solid rgba(184, 212, 186, 0.6);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.25s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-home-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border-color: rgba(184, 212, 186, 0.9);
 }
 
 .dashboard-home-card-wide {
@@ -105,7 +115,7 @@
   font-weight: 600;
   color: #202124;
   letter-spacing: -0.01em;
-  border-bottom: 1px solid #e8f0e9;
+  border-bottom: 1px solid rgba(232, 240, 233, 0.8);
   background: #fafbfa;
 }
 
@@ -138,7 +148,7 @@
   text-decoration: underline;
 }
 
-/* Primary CTA – prominent green button */
+/* Primary CTA – soft shadow, smooth hover */
 .dashboard-home-cta {
   display: inline-block;
   margin-top: 14px;
@@ -147,7 +157,7 @@
   font-weight: 600;
   border-radius: 10px;
   text-decoration: none;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   text-align: center;
 }
 
@@ -157,20 +167,23 @@
   border: none;
   width: 100%;
   max-width: 200px;
+  box-shadow: 0 1px 2px rgba(46, 125, 50, 0.15);
 }
 
 .dashboard-home-cta-primary:hover {
-  background: #1b5e20;
+  background: #256b29;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
 }
 
 .dashboard-home-cta-outline {
   background: transparent;
   color: #2e7d32;
-  border: 1px solid #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.5);
 }
 
 .dashboard-home-cta-outline:hover {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.6);
+  border-color: #2e7d32;
 }
 
 /* Market News – feed items as bordered snippets */
@@ -186,18 +199,20 @@
 .dashboard-home-feed-item {
   display: block;
   padding: 12px 14px;
-  border: 1px solid #b8d4ba;
+  border: 1px solid rgba(184, 212, 186, 0.5);
   border-radius: 10px;
   text-decoration: none;
   color: #202124;
   font-size: 0.875rem;
   line-height: 1.45;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .dashboard-home-feed-item:hover {
-  background: #f7fbf7;
-  border-color: #9bc99e;
+  background: rgba(247, 251, 247, 0.8);
+  border-color: rgba(155, 201, 158, 0.7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .dashboard-home-feed-item.sentiment-positive {
@@ -240,9 +255,20 @@
   font-size: 0.8125rem;
   color: #202124;
   background: #fff;
-  border: 1px solid #dadce0;
+  border: 1px solid rgba(218, 220, 224, 0.8);
   border-radius: 8px;
   cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-home-gainers-select:hover {
+  border-color: #dadce0;
+}
+
+.dashboard-home-gainers-select:focus {
+  outline: none;
+  border-color: rgba(46, 125, 50, 0.5);
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.08);
 }
 
 .dashboard-home-gainers-list {
@@ -305,13 +331,15 @@
   font-weight: 600;
   color: #2e7d32;
   text-decoration: none;
-  border: 1px solid #b8d4ba;
+  border: 1px solid rgba(184, 212, 186, 0.6);
   border-radius: 8px;
-  transition: background 0.15s;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-home-test-next:hover {
-  background: #e8f5e9;
+  background: rgba(232, 245, 233, 0.6);
+  border-color: rgba(46, 125, 50, 0.35);
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.08);
 }
 
 /* New Tools – each tool in bordered box */
@@ -326,11 +354,17 @@
 
 .dashboard-home-tool-item {
   padding: 12px 14px;
-  border: 1px solid #b8d4ba;
+  border: 1px solid rgba(184, 212, 186, 0.5);
   border-radius: 10px;
   font-size: 0.875rem;
   color: #202124;
   line-height: 1.4;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-home-tool-item:hover {
+  border-color: rgba(184, 212, 186, 0.8);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .dashboard-home-tool-name {

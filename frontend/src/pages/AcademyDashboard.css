@@ -48,14 +48,15 @@
   padding: 8px 16px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   font-size: 13px;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .academy-header nav button:hover {
-  background: var(--border);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .academy-dashboard {
@@ -82,6 +83,12 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .stat-value {
@@ -178,10 +185,13 @@
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .path-card:hover {
   border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .path-icon {
