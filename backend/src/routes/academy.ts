@@ -228,19 +228,17 @@ router.get("/home", authMiddleware, async (req: Request, res: Response): Promise
   });
 });
 
-/** GET /academy/dashboard – Amanah Wealth Academy dashboard: stats, continue, paths, recent badges (legacy; use /academy/home for new UI) */
+/** GET /academy/dashboard – 7-section academy dashboard (Continue, Pathway Progress, Recommended Course, Workspace Task, Weekly Quiz, Community, Tool Updates) */
 router.get("/dashboard", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;
   const userId = req.user.userId;
 
-  const [modules, progressList, userBadges, user] = await Promise.all([
+  const [modules, progressList, userBadges, user, allLessons, pathways, courseProgressList, toolReleases] = await Promise.all([
     prisma.academyModule.findMany({
       orderBy: { orderIndex: "asc" },
       include: {
-        lessons: {
-          orderBy: { orderIndex: "asc" },
-          select: { id: true, slug: true, title: true, durationMinutes: true, orderIndex: true },
-        },
+        lessons: { orderBy: { orderIndex: "asc" }, select: { id: true, slug: true, title: true, durationMinutes: true, orderIndex: true, workspaceTaskLabel: true, workspaceTemplateSlug: true } },
+        course: { select: { id: true, title: true, slug: true } },
       },
     }),
     prisma.academyProgress.findMany({
@@ -255,59 +253,96 @@ router.get("/dashboard", authMiddleware, async (req: Request, res: Response): Pr
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { academyStreakDays: true },
+      select: { academyStreakDays: true, primaryPathwayId: true },
     }),
+    prisma.academyLesson.findMany({
+      orderBy: [{ module: { orderIndex: "asc" } }, { orderIndex: "asc" }],
+      include: { module: { select: { slug: true, title: true } } },
+    }),
+    prisma.learningPath.findMany({ orderBy: { orderIndex: "asc" }, include: { courses: { orderBy: { orderIndex: "asc" }, select: { id: true, slug: true, title: true } } } }),
+    prisma.courseProgress.findMany({ where: { userId }, select: { courseId: true, completionPercent: true } }),
+    prisma.toolRelease.findMany({ orderBy: { releasedAt: "desc" }, take: 5, select: { id: true, name: true, description: true, url: true } }),
   ]);
 
-  const progressMap = new Map(progressList.map((p: { lessonId: string; progressPercent: number; completedAt: Date | null }) => [p.lessonId, p]));
-  const allLessons = await prisma.academyLesson.findMany({
-    orderBy: [{ module: { orderIndex: "asc" } }, { orderIndex: "asc" }],
-    include: { module: { select: { slug: true, title: true } } },
-  });
+  const progressMap = new Map(progressList.map((p) => [p.lessonId, p]));
   const continueLesson = allLessons.find((l) => !progressMap.get(l.id)?.completedAt);
-
-  const totalLessons = modules.reduce((s: number, m: { lessons: unknown[] }) => s + m.lessons.length, 0);
-  const completedLessons = progressList.filter((p: { completedAt: Date | null }) => p.completedAt).length;
+  const totalLessons = modules.reduce((s, m) => s + m.lessons.length, 0);
+  const completedLessons = progressList.filter((p) => p.completedAt).length;
   const overallPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
-  const badgesCount = await prisma.userBadge.count({ where: { userId } });
 
-  const learningPaths = modules.map((mod) => ({
-    id: mod.id,
-    slug: mod.slug,
-    title: mod.title,
-    description: mod.description,
-    orderIndex: mod.orderIndex,
-    completedLessons: mod.lessons.filter((l: { id: string }) => progressMap.get(l.id)?.completedAt).length,
-    totalLessons: mod.lessons.length,
-    lessons: mod.lessons.map((l: { id: string; slug: string; title: string; durationMinutes: number | null; orderIndex: number }) => ({
-      ...l,
-      progress: progressMap.get(l.id)?.progressPercent ?? 0,
-      completedAt: progressMap.get(l.id)?.completedAt ?? null,
-    })),
-  }));
+  const primaryPathway = user?.primaryPathwayId ? pathways.find((p) => p.id === user.primaryPathwayId) : pathways[0];
+  const pathwayCourses = primaryPathway?.courses ?? [];
+  const courseProgressMap = new Map(courseProgressList.map((cp) => [cp.courseId, cp]));
+  const coursesCompleted = pathwayCourses.filter((c) => (courseProgressMap.get(c.id)?.completionPercent ?? 0) >= 100).length;
+  const pathPercent = pathwayCourses.length ? Math.round((coursesCompleted / pathwayCourses.length) * 100) : overallPercent;
+  const nextCourseInPath = pathwayCourses.find((c) => (courseProgressMap.get(c.id)?.completionPercent ?? 0) < 100);
+
+  type LessonWithTask = { id: string; title: string; workspaceTaskLabel: string | null; workspaceTemplateSlug: string | null };
+  const lessonWithTask = ((): LessonWithTask | null => {
+    for (const m of modules) {
+      const found = m.lessons.find((l) => (l as LessonWithTask).workspaceTaskLabel);
+      if (found) return found as LessonWithTask;
+    }
+    return null;
+  })();
+  const workspaceTask = lessonWithTask?.workspaceTaskLabel
+    ? {
+        label: lessonWithTask.workspaceTaskLabel,
+        lessonTitle: lessonWithTask.title,
+        openWorkspaceUrl: lessonWithTask.workspaceTemplateSlug ? `/workspace?template=${lessonWithTask.workspaceTemplateSlug}` : "/workspace",
+      }
+    : null;
+
+  const continueModule = continueLesson ? modules.find((m) => m.slug === continueLesson.module?.slug) : null;
+  const continueCourseTitle = continueModule?.course?.title ?? continueLesson?.module?.title ?? null;
 
   res.json({
+    continueLearning: continueLesson
+      ? {
+          course: continueCourseTitle,
+          module: continueLesson.module?.title,
+          lesson: continueLesson.title,
+          progress: progressMap.get(continueLesson.id)?.progressPercent ?? 0,
+          resumeUrl: `/academy/lessons/${continueLesson.id}`,
+        }
+      : null,
+    pathwayProgress: {
+      pathwayName: primaryPathway?.name ?? "Academy",
+      coursesCompleted,
+      coursesTotal: pathwayCourses.length || 1,
+      pathPercent,
+      nextMilestone: nextCourseInPath ? `Complete ${nextCourseInPath.title}` : "Complete pathway",
+    },
+    recommendedNextCourse: nextCourseInPath
+      ? { id: nextCourseInPath.id, title: nextCourseInPath.title, reason: "Next in your pathway", startUrl: `/academy/course/${nextCourseInPath.id}` }
+      : null,
+    workspaceTask,
+    weeklyKnowledgeTest: { questionCount: 5, estimatedMinutes: 2, startUrl: "/academy/test" },
+    communityDiscussions: { askUrl: "/community", joinUrl: "/community", previewTitle: "Discuss your strategy" },
+    toolUpdates: { items: toolReleases.map((t) => ({ name: t.name, description: t.description, url: t.url })) },
     stats: {
       overallProgressPercent: overallPercent,
       currentStreakDays: user?.academyStreakDays ?? 0,
-      badgesEarned: badgesCount,
+      badgesEarned: userBadges.length,
     },
-    continueLesson: continueLesson
-      ? {
-          id: continueLesson.id,
-          slug: continueLesson.slug,
-          title: continueLesson.title,
-          description: continueLesson.description,
-          durationMinutes: continueLesson.durationMinutes,
-          module: continueLesson.module,
-          progress: progressMap.get(continueLesson.id)?.progressPercent ?? 0,
-        }
-      : null,
-    learningPaths,
-    recentBadges: userBadges.map((ub: { badge: { id: string; slug: string; name: string; icon: string | null; type: string }; earnedAt: Date }) => ({
-      ...ub.badge,
-      earnedAt: ub.earnedAt,
+    learningPaths: modules.map((mod) => ({
+      id: mod.id,
+      slug: mod.slug,
+      title: mod.title,
+      description: mod.description,
+      completedLessons: mod.lessons.filter((l) => progressMap.get(l.id)?.completedAt).length,
+      totalLessons: mod.lessons.length,
+      lessons: mod.lessons.map((l) => ({
+        id: l.id,
+        slug: l.slug,
+        title: l.title,
+        durationMinutes: l.durationMinutes,
+        orderIndex: l.orderIndex,
+        progress: progressMap.get(l.id)?.progressPercent ?? 0,
+        completedAt: progressMap.get(l.id)?.completedAt ?? null,
+      })),
     })),
+    recentBadges: userBadges.map((ub) => ({ ...ub.badge, earnedAt: ub.earnedAt })),
   });
 });
 
@@ -507,7 +542,10 @@ router.post(
     const { progressPercent, completed } = req.body as { progressPercent?: number; completed?: boolean };
     const userId = req.user.userId;
 
-    const lesson = await prisma.academyLesson.findUnique({ where: { id: lessonId } });
+    const lesson = await prisma.academyLesson.findUnique({
+      where: { id: lessonId },
+      include: { module: { select: { courseId: true } } },
+    });
     if (!lesson) {
       res.status(404).json({ error: "Lesson not found" });
       return;
@@ -533,6 +571,23 @@ router.post(
         ...(completedAt && { completedAt }),
       },
     });
+
+    if (lesson.module?.courseId && (completedAt || percent === 100)) {
+      const courseId = lesson.module.courseId;
+      const courseLessons = await prisma.academyLesson.findMany({
+        where: { module: { courseId } },
+        select: { id: true },
+      });
+      const completedInCourse = await prisma.academyProgress.count({
+        where: { userId, lessonId: { in: courseLessons.map((l) => l.id) }, completedAt: { not: null } },
+      });
+      const completionPercent = courseLessons.length ? Math.round((completedInCourse / courseLessons.length) * 100) : 0;
+      await prisma.courseProgress.upsert({
+        where: { userId_courseId: { userId, courseId } },
+        create: { userId, courseId, completionPercent, lastLessonId: lessonId, lastActivityAt: new Date() },
+        update: { completionPercent, lastLessonId: lessonId, lastActivityAt: new Date() },
+      });
+    }
 
     res.json(progress);
   }
@@ -650,5 +705,207 @@ router.get("/continue", authMiddleware, async (req: Request, res: Response): Pro
     },
   });
 });
+
+/** GET /academy/courses – list courses (optionally by pathway); includes user progress */
+router.get("/courses", authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) return;
+  const userId = req.user.userId;
+  const pathwaySlug = req.query.pathway as string | undefined;
+
+  const pathways = await prisma.learningPath.findMany({
+    where: pathwaySlug ? { slug: pathwaySlug } : undefined,
+    orderBy: { orderIndex: "asc" },
+    include: {
+      courses: {
+        orderBy: { orderIndex: "asc" },
+        include: { _count: { select: { modules: true } } },
+      },
+    },
+  });
+  const courseIds = pathways.flatMap((p) => p.courses.map((c) => c.id));
+  const progressList = courseIds.length
+    ? await prisma.courseProgress.findMany({ where: { userId, courseId: { in: courseIds } }, select: { courseId: true, completionPercent: true, lastLessonId: true } })
+    : [];
+  const progressMap = new Map(progressList.map((p) => [p.courseId, p]));
+
+  const courses = pathways.flatMap((p) =>
+    p.courses.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      title: c.title,
+      description: c.description,
+      pathwayName: p.name,
+      pathwaySlug: p.slug,
+      moduleCount: c._count.modules,
+      estimatedMinutes: c.estimatedMinutes,
+      skillLevel: c.skillLevel,
+      completionPercent: progressMap.get(c.id)?.completionPercent ?? 0,
+    }))
+  );
+
+  res.json({ courses, pathways: pathways.map((p) => ({ id: p.id, slug: p.slug, name: p.name, description: p.description })) });
+});
+
+/** GET /academy/course/:id – course detail with modules and lessons; user progress */
+router.get(
+  "/course/:id",
+  authMiddleware,
+  param("id").isString().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    if (!req.user) return;
+    const userId = req.user.userId;
+    const courseId = req.params.id;
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        pathway: { select: { id: true, slug: true, name: true } },
+        modules: {
+          orderBy: { orderIndex: "asc" },
+          include: {
+            lessons: { orderBy: { orderIndex: "asc" }, select: { id: true, slug: true, title: true, durationMinutes: true, orderIndex: true } },
+          },
+        },
+      },
+    });
+    if (!course) {
+      res.status(404).json({ error: "Course not found" });
+      return;
+    }
+
+    const lessonIds = course.modules.flatMap((m) => m.lessons.map((l) => l.id));
+    const progressList = lessonIds.length ? await prisma.academyProgress.findMany({ where: { userId, lessonId: { in: lessonIds } }, select: { lessonId: true, progressPercent: true, completedAt: true } }) : [];
+    const progressMap = new Map(progressList.map((p) => [p.lessonId, p]));
+    const courseProgress = await prisma.courseProgress.findUnique({ where: { userId_courseId: { userId, courseId } } });
+
+    res.json({
+      id: course.id,
+      slug: course.slug,
+      title: course.title,
+      description: course.description,
+      estimatedMinutes: course.estimatedMinutes,
+      skillLevel: course.skillLevel,
+      pathway: course.pathway,
+      modules: course.modules.map((m) => ({
+        id: m.id,
+        slug: m.slug,
+        title: m.title,
+        description: m.description,
+        lessons: m.lessons.map((l) => ({
+          ...l,
+          progress: progressMap.get(l.id)?.progressPercent ?? 0,
+          completedAt: progressMap.get(l.id)?.completedAt ?? null,
+        })),
+        completedLessons: m.lessons.filter((l) => progressMap.get(l.id)?.completedAt).length,
+        totalLessons: m.lessons.length,
+      })),
+      completionPercent: courseProgress?.completionPercent ?? 0,
+      lastLessonId: courseProgress?.lastLessonId ?? null,
+    });
+  }
+);
+
+/** GET /academy/progress – user progress summary (courses, overall) */
+router.get("/progress", authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) return;
+  const userId = req.user.userId;
+
+  const [lessonProgress, courseProgress, pathways] = await Promise.all([
+    prisma.academyProgress.findMany({ where: { userId }, select: { lessonId: true, progressPercent: true, completedAt: true } }),
+    prisma.courseProgress.findMany({ where: { userId }, include: { course: { select: { id: true, title: true, slug: true } } } }),
+    prisma.learningPath.findMany({ orderBy: { orderIndex: "asc" }, select: { id: true, slug: true, name: true } }),
+  ]);
+
+  const totalLessons = await prisma.academyLesson.count();
+  const completedLessons = lessonProgress.filter((p) => p.completedAt).length;
+  const overallPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+  res.json({
+    overallPercent,
+    completedLessons,
+    totalLessons,
+    courseProgress: courseProgress.map((cp) => ({
+      courseId: cp.course.id,
+      title: cp.course.title,
+      slug: cp.course.slug,
+      completionPercent: cp.completionPercent,
+    })),
+    pathways,
+  });
+});
+
+/** GET /academy/lessons/:lessonId/quiz – get quiz for lesson (questions without correct answer) */
+router.get(
+  "/lessons/:lessonId/quiz",
+  authMiddleware,
+  param("lessonId").isString().notEmpty(),
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    const lessonId = req.params.lessonId;
+    const quiz = await prisma.lessonQuiz.findUnique({
+      where: { lessonId },
+      include: { questions: { orderBy: { orderIndex: "asc" } } },
+    });
+    if (!quiz) {
+      res.json({ questions: [] });
+      return;
+    }
+    const questions = quiz.questions.map((q) => {
+      const options = JSON.parse(q.options) as string[];
+      return { id: q.id, questionText: q.questionText, options };
+    });
+    res.json({ quizId: quiz.id, questions });
+  }
+);
+
+/** POST /academy/lessons/:lessonId/quiz/attempt – submit quiz attempt */
+router.post(
+  "/lessons/:lessonId/quiz/attempt",
+  authMiddleware,
+  param("lessonId").isString().notEmpty(),
+  body("answers").isObject(),
+  async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+    if (!req.user) return;
+    const userId = req.user.userId;
+    const lessonId = req.params.lessonId;
+    const answers = req.body.answers as Record<string, number>;
+
+    const quiz = await prisma.lessonQuiz.findUnique({
+      where: { lessonId },
+      include: { questions: true },
+    });
+    if (!quiz) {
+      res.status(404).json({ error: "No quiz for this lesson" });
+      return;
+    }
+    let correct = 0;
+    for (const q of quiz.questions) {
+      const selected = answers[q.id];
+      if (typeof selected === "number" && selected === q.correctIndex) correct++;
+    }
+    const score = quiz.questions.length ? Math.round((correct / quiz.questions.length) * 100) : 0;
+    const passed = score >= 70;
+
+    await prisma.quizAttempt.create({
+      data: { userId, lessonId, score, passed, answers: JSON.stringify(answers) },
+    });
+
+    res.json({ score, passed, correct, total: quiz.questions.length });
+  }
+);
 
 export default router;

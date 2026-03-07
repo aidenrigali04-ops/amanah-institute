@@ -336,6 +336,41 @@ export async function getAcademyBadges() {
   return j.badges || [];
 }
 
+export async function getAcademyCourses(pathway?: string) {
+  const q = pathway ? `?pathway=${encodeURIComponent(pathway)}` : "";
+  const res = await fetch(`${API}/api/academy/courses${q}`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load courses");
+  return res.json();
+}
+
+export async function getAcademyCourse(courseId: string) {
+  const res = await fetch(`${API}/api/academy/course/${courseId}`, { headers: headers() });
+  if (!res.ok) throw new Error("Course not found");
+  return res.json();
+}
+
+export async function getAcademyProgress() {
+  const res = await fetch(`${API}/api/academy/progress`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load progress");
+  return res.json();
+}
+
+export async function getLessonQuiz(lessonId: string) {
+  const res = await fetch(`${API}/api/academy/lessons/${lessonId}/quiz`, { headers: headers() });
+  if (!res.ok) return { questions: [] };
+  return res.json();
+}
+
+export async function submitLessonQuizAttempt(lessonId: string, answers: Record<string, number>) {
+  const res = await fetch(`${API}/api/academy/lessons/${lessonId}/quiz/attempt`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ answers }),
+  });
+  if (!res.ok) throw new Error("Failed to submit quiz");
+  return res.json();
+}
+
 export async function setTheme(theme: "light" | "dark") {
   const res = await fetch(`${API}/api/profile`, {
     method: "PATCH",
@@ -463,5 +498,149 @@ export async function postOnboarding(data: {
     const e = await res.json().catch(() => ({}));
     throw new Error(e.error || "Failed to save");
   }
+  return res.json();
+}
+
+// ─── Workspace ───────────────────────────────────────────────────────────────
+export async function getWorkspaceHome(): Promise<{
+  recentProjects: { id: string; name: string; type: string; status: string; updatedAt: string }[];
+  sharedWithMe: { id: string; name: string; type: string; role: string; ownerWorkspace: string; updatedAt: string }[];
+  recommendedTemplates: { id: string; slug: string; name: string; description: string | null; type: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/home`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load workspace");
+  return res.json();
+}
+
+export async function getWorkspaceTemplates(): Promise<{
+  templates: { id: string; slug: string; name: string; description: string | null; type: string; definition: object | null }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/templates`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load templates");
+  return res.json();
+}
+
+export async function getWorkspaceProjects(): Promise<{
+  projects: { id: string; name: string; type: string; status: string; metadata: object | null; createdAt: string; updatedAt: string; role: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load projects");
+  return res.json();
+}
+
+export async function createWorkspaceProject(data: { name: string; type: string; templateId?: string; metadata?: object }) {
+  const res = await fetch(`${API}/api/workspace/projects`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || "Failed to create project");
+  }
+  return res.json();
+}
+
+export async function getWorkspaceProject(projectId: string) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load project");
+  return res.json();
+}
+
+export async function getWorkspaceCanvas(projectId: string): Promise<{
+  elements: { id: string; type: string; xPosition: number; yPosition: number; width: number; height: number; rotation: number; zIndex: number; content: object | null; frameId: string | null; createdAt: string; updatedAt: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/canvas`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load canvas");
+  return res.json();
+}
+
+export async function createCanvasElement(
+  projectId: string,
+  data: { type: string; xPosition: number; yPosition: number; width?: number; height?: number; rotation?: number; zIndex?: number; content?: object; frameId?: string }
+) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/canvas`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to add element");
+  return res.json();
+}
+
+export async function updateCanvasElement(
+  projectId: string,
+  elementId: string,
+  data: { xPosition?: number; yPosition?: number; width?: number; height?: number; rotation?: number; zIndex?: number; content?: object; frameId?: string }
+) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/canvas/${elementId}`, {
+    method: "PATCH",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update element");
+  return res.json();
+}
+
+export async function deleteCanvasElement(projectId: string, elementId: string) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/canvas/${elementId}`, { method: "DELETE", headers: headers() });
+  if (!res.ok) throw new Error("Failed to delete element");
+}
+
+export async function getWorkspaceAssets(projectId: string): Promise<{
+  assets: { id: string; type: string; name: string; url: string; mimeType: string | null; sizeBytes: number | null; folderPath: string | null; createdAt: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/assets`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load assets");
+  return res.json();
+}
+
+export async function getWorkspaceNotes(projectId: string): Promise<{
+  notes: { id: string; title: string; body: string; createdBy: string; author: { id: string; firstName: string; lastName: string } | null; createdAt: string; updatedAt: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/notes`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load notes");
+  return res.json();
+}
+
+export async function createWorkspaceNote(projectId: string, data: { title: string; body: string }) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/notes`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create note");
+  return res.json();
+}
+
+export async function updateWorkspaceNote(projectId: string, noteId: string, data: { title?: string; body?: string }) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/notes/${noteId}`, {
+    method: "PATCH",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update note");
+  return res.json();
+}
+
+export async function deleteWorkspaceNote(projectId: string, noteId: string) {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/notes/${noteId}`, { method: "DELETE", headers: headers() });
+  if (!res.ok) throw new Error("Failed to delete note");
+}
+
+export async function getWorkspaceWorkflows(projectId: string): Promise<{
+  nodes: { id: string; nodeType: string; config: object | null; positionX: number; positionY: number; createdAt: string; updatedAt: string }[];
+  connections: { id: string; fromNodeId: string; toNodeId: string }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/workflows`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load workflows");
+  return res.json();
+}
+
+export async function getWorkspaceMembers(projectId: string): Promise<{
+  members: { userId: string; role: string; joinedAt: string; user: { id: string; firstName: string; lastName: string; email: string } }[];
+}> {
+  const res = await fetch(`${API}/api/workspace/projects/${projectId}/members`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to load members");
   return res.json();
 }

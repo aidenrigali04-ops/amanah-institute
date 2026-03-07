@@ -44,10 +44,13 @@ export default function DashboardLayout() {
           <NavLink to="/academy/courses" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
             All Courses
           </NavLink>
+          <NavLink to="/academy/progress" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
+            My Progress
+          </NavLink>
           <NavLink to="/workspace" className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
             Workspace
           </NavLink>
-          <span className="sidebar-heading">Tradings</span>
+          <span className="sidebar-heading">Trading</span>
           <NavLink to="/invest" end className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}>
             My Account
           </NavLink>

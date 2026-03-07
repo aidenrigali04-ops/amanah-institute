@@ -118,6 +118,118 @@
   transition: width 0.5s ease;
 }
 
+.academy-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.academy-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.academy-section h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+  margin-top: 8px;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.continue-learning .continue-course {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.pathway-progress .pathway-name {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.pathway-bar {
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.pathway-bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.pathway-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.workspace-task .task-label { font-weight: 500; margin: 0 0 4px; }
+.workspace-task .task-lesson { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
+
+.weekly-quiz p { margin: 0 0 8px; font-size: 14px; color: var(--text-muted); }
+
+.community-actions { margin-top: 8px; }
+
+.tool-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tool-list li {
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool-list li:last-child { border-bottom: none; }
+
+.tool-list a {
+  color: var(--accent);
+  margin-left: 8px;
+}
+
 .continue-card {
   background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-elevated) 100%);
   border: 1px solid var(--border);
@@ -167,6 +279,13 @@
 .btn-continue:hover {
   opacity: 0.9;
 }
+
+.learning-paths .path-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.lesson-more { margin-top: 4px; }
 
 .learning-paths h2, .recent-badges h2 {
   margin: 0 0 16px;

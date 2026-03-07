@@ -100,13 +100,88 @@ const HALAL_SYMBOLS = [
   { symbol: "AMZN", name: "Amazon.com Inc", assetType: "stock" },
 ];
 
+/** Quizzes for the last (capstone) lesson of each module. options: string[]; correctIndex: 0-based. */
+const LESSON_QUIZZES: { moduleSlug: string; lessonSlug: string; questions: { questionText: string; options: string[]; correctIndex: number }[] }[] = [
+  {
+    moduleSlug: "foundations",
+    lessonSlug: "choosing-a-niche",
+    questions: [
+      { questionText: "Why is it important to validate a business idea before building?", options: ["To save time and money", "To ensure there is real demand", "Both A and B", "It is not necessary"], correctIndex: 2 },
+      { questionText: "What is a customer pain point?", options: ["A problem or need customers have", "A type of product", "A marketing channel", "A pricing strategy"], correctIndex: 0 },
+      { questionText: "Market research helps you:", options: ["Guess what customers want", "Understand demand and competition", "Copy competitors only", "Skip validation"], correctIndex: 1 },
+      { questionText: "Choosing a niche means:", options: ["Serving everyone", "Focusing on a specific audience", "Ignoring the market", "Only selling one product"], correctIndex: 1 },
+    ],
+  },
+  {
+    moduleSlug: "offer-revenue",
+    lessonSlug: "sales-basics",
+    questions: [
+      { questionText: "A strong value proposition should:", options: ["Be vague to appeal to more people", "Clearly state the benefit to the customer", "Focus only on features", "Ignore the competition"], correctIndex: 1 },
+      { questionText: "Pricing based on value means:", options: ["Charging the lowest price", "Linking price to the outcome you deliver", "Copying competitor prices", "Always using discounts"], correctIndex: 1 },
+      { questionText: "An offer typically includes:", options: ["Only the product", "Product, price, and clear outcome", "Just the price", "Nothing specific"], correctIndex: 1 },
+      { questionText: "Ethical sales is about:", options: ["Selling at any cost", "Helping the right customers get the right solution", "Avoiding conversations", "Only selling online"], correctIndex: 1 },
+    ],
+  },
+  {
+    moduleSlug: "branding-positioning",
+    lessonSlug: "authority-building",
+    questions: [
+      { questionText: "Brand identity includes:", options: ["Only a logo", "Visual identity, voice, and messaging", "Only colors", "Only the name"], correctIndex: 1 },
+      { questionText: "Consistent messaging helps:", options: ["Confuse the audience", "Build recognition and trust", "Reduce marketing need to zero", "Replace the product"], correctIndex: 1 },
+      { questionText: "Authority building is about:", options: ["Being the cheapest", "Demonstrating expertise and trustworthiness", "Posting only on one platform", "Ignoring feedback"], correctIndex: 1 },
+      { questionText: "A unique value proposition (UVP) should be:", options: ["Long and detailed", "Clear and distinguishable from alternatives", "The same as competitors", "Hidden on the website"], correctIndex: 1 },
+    ],
+  },
+  {
+    moduleSlug: "marketing-acquisition",
+    lessonSlug: "conversion-strategy",
+    questions: [
+      { questionText: "A marketing funnel typically moves customers:", options: ["From sale to awareness", "From awareness to purchase", "Only through one step", "Randomly"], correctIndex: 1 },
+      { questionText: "Content marketing aims to:", options: ["Sell only", "Provide value and build trust before selling", "Replace all other marketing", "Avoid any call to action"], correctIndex: 1 },
+      { questionText: "Ethical sales means:", options: ["No persuasion", "Honest persuasion that serves the customer", "Selling only to friends", "Avoiding conversations"], correctIndex: 1 },
+      { questionText: "Conversion strategy focuses on:", options: ["Getting more traffic only", "Turning interested people into customers", "Removing all friction", "Hiding the price"], correctIndex: 1 },
+    ],
+  },
+  {
+    moduleSlug: "operations",
+    lessonSlug: "financial-tracking",
+    questions: [
+      { questionText: "SOPs (Standard Operating Procedures) help:", options: ["Make work slower", "Create consistency and scale", "Replace all staff", "Eliminate the need for training"], correctIndex: 1 },
+      { questionText: "Client delivery systems are important for:", options: ["Only large companies", "Quality and repeatability", "Avoiding clients", "Cutting costs only"], correctIndex: 1 },
+      { questionText: "Financial tracking helps you:", options: ["Ignore profitability", "Understand revenue, costs, and profit", "Only track sales", "Replace an accountant"], correctIndex: 1 },
+      { questionText: "Operations focus on:", options: ["Marketing only", "Systems, delivery, and financial health", "Only hiring", "Only product creation"], correctIndex: 1 },
+    ],
+  },
+  {
+    moduleSlug: "scaling",
+    lessonSlug: "capital-allocation",
+    questions: [
+      { questionText: "Scaling often requires:", options: ["Doing everything yourself", "Leverage through systems and people", "Lower quality", "Stopping growth"], correctIndex: 1 },
+      { questionText: "Capital allocation means:", options: ["Spending all profit", "Deciding where to invest time and money", "Ignoring cash flow", "Only saving"], correctIndex: 1 },
+      { questionText: "Leverage can come from:", options: ["Only money", "People, systems, and capital", "Only technology", "Only marketing"], correctIndex: 1 },
+      { questionText: "When scaling, it is important to:", options: ["Skip systems", "Maintain quality and systems", "Hire without structure", "Ignore unit economics"], correctIndex: 1 },
+    ],
+  },
+];
+
 async function main() {
+  const pathway = await prisma.learningPath.upsert({
+    where: { slug: "entrepreneurship" },
+    create: { slug: "entrepreneurship", name: "Entrepreneurship", description: "Build real businesses from zero.", orderIndex: 0 },
+    update: { name: "Entrepreneurship", description: "Build real businesses from zero.", orderIndex: 0 },
+  });
+  const course = await prisma.course.upsert({
+    where: { pathwayId_slug: { pathwayId: pathway.id, slug: "entrepreneurship-foundations" } },
+    create: { pathwayId: pathway.id, slug: "entrepreneurship-foundations", title: "Entrepreneurship Foundations", description: "Teach how businesses actually work.", orderIndex: 0, estimatedMinutes: 120, skillLevel: "beginner" },
+    update: { title: "Entrepreneurship Foundations", description: "Teach how businesses actually work.", orderIndex: 0, estimatedMinutes: 120, skillLevel: "beginner" },
+  });
+
   for (const mod of MODULES) {
     const { lessons, ...moduleData } = mod;
     const created = await prisma.academyModule.upsert({
       where: { slug: mod.slug },
-      create: moduleData,
-      update: { title: moduleData.title, description: moduleData.description, orderIndex: moduleData.orderIndex },
+      create: { ...moduleData, courseId: course.id },
+      update: { title: moduleData.title, description: moduleData.description, orderIndex: moduleData.orderIndex, courseId: course.id },
     });
     for (const l of lessons) {
       await prisma.academyLesson.upsert({
@@ -120,6 +195,33 @@ async function main() {
           description: l.title,
         },
         update: { title: l.title, durationMinutes: l.durationMinutes, orderIndex: l.orderIndex },
+      });
+    }
+  }
+
+  for (const qz of LESSON_QUIZZES) {
+    const mod = await prisma.academyModule.findUnique({ where: { slug: qz.moduleSlug } });
+    if (!mod) continue;
+    const lesson = await prisma.academyLesson.findUnique({
+      where: { moduleId_slug: { moduleId: mod.id, slug: qz.lessonSlug } },
+    });
+    if (!lesson) continue;
+    const quiz = await prisma.lessonQuiz.upsert({
+      where: { lessonId: lesson.id },
+      create: { lessonId: lesson.id },
+      update: {},
+    });
+    await prisma.quizQuestion.deleteMany({ where: { quizId: quiz.id } });
+    for (let i = 0; i < qz.questions.length; i++) {
+      const q = qz.questions[i];
+      await prisma.quizQuestion.create({
+        data: {
+          quizId: quiz.id,
+          questionText: q.questionText,
+          options: JSON.stringify(q.options),
+          correctIndex: q.correctIndex,
+          orderIndex: i,
+        },
       });
     }
   }
@@ -256,7 +358,57 @@ Ensure your business operates within Islamic guidelines in every decision: from 
     });
   }
 
-  console.log("Seed complete: academy modules/lessons, community channels, halal symbols, badges, topics, tools, feed, charity foundations.");
+  const WORKSPACE_TEMPLATES = [
+    {
+      slug: "branding-board",
+      name: "Branding Board",
+      description: "Define brand mission, logo concepts, color palette, typography, and brand voice.",
+      type: "branding_board",
+      orderIndex: 0,
+      definition: JSON.stringify({
+        sections: ["Brand Mission", "Logo Concepts", "Color Palette", "Typography", "Brand Voice"],
+      }),
+    },
+    {
+      slug: "business-model",
+      name: "Business Model Canvas",
+      description: "Map customer segments, value proposition, channels, revenue streams, and key activities.",
+      type: "business_model",
+      orderIndex: 1,
+      definition: JSON.stringify({
+        sections: ["Customer Segments", "Value Proposition", "Channels", "Revenue Streams", "Key Activities", "Key Partners", "Cost Structure"],
+      }),
+    },
+    {
+      slug: "marketing-funnel",
+      name: "Marketing Funnel",
+      description: "Plan traffic sources, lead magnet, email funnel, offer page, and conversion metrics.",
+      type: "marketing_funnel",
+      orderIndex: 2,
+      definition: JSON.stringify({
+        sections: ["Traffic Sources", "Lead Magnet", "Email Funnel", "Offer Page", "Conversion Metrics"],
+      }),
+    },
+    {
+      slug: "workflow-map",
+      name: "Workflow Map",
+      description: "Visual automation diagram: trigger → condition → action.",
+      type: "workflow_map",
+      orderIndex: 3,
+      definition: JSON.stringify({
+        sections: ["Workflow"],
+      }),
+    },
+  ];
+  for (const t of WORKSPACE_TEMPLATES) {
+    await prisma.workspaceTemplate.upsert({
+      where: { slug: t.slug },
+      create: t,
+      update: { name: t.name, description: t.description, type: t.type, definition: t.definition, orderIndex: t.orderIndex },
+    });
+  }
+
+  console.log("Seed complete: academy modules/lessons, community channels, halal symbols, badges, topics, tools, feed, charity foundations, workspace templates.");
 }
 
 main()
