@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
-import { body, param, query, validationResult } from "express-validator";
+import { body, param, query } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import { prisma } from "../lib/prisma.js";
+import { validateRequest } from "../lib/validation.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -33,60 +35,65 @@ function canEdit(role: string) {
 }
 
 /** GET /workspace/home – recent projects, create options, recommended templates, collaboration */
-router.get("/home", async (req: Request, res: Response): Promise<void> => {
+router.get("/home", asyncHandler(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;
   const userId = req.user.userId;
-
-  let workspace = await prisma.workspace.findUnique({
-    where: { userId },
-    include: {
-      projects: { orderBy: { updatedAt: "desc" }, take: 10 },
-    },
-  });
-  if (!workspace) {
-    workspace = await prisma.workspace.create({
-      data: { userId },
-      include: { projects: true },
+  try {
+    let workspace = await prisma.workspace.findUnique({
+      where: { userId },
+      include: {
+        projects: { orderBy: { updatedAt: "desc" }, take: 10 },
+      },
     });
+    if (!workspace) {
+      workspace = await prisma.workspace.create({
+        data: { userId },
+        include: { projects: true },
+      });
+    }
+
+    const [sharedProjects, templates] = await Promise.all([
+      prisma.projectMember.findMany({
+        where: { userId, role: { not: "owner" } },
+        include: { project: { include: { workspace: { select: { companyName: true } } } } },
+        orderBy: { joinedAt: "desc" },
+        take: 5,
+      }),
+      prisma.workspaceTemplate.findMany({
+        orderBy: { orderIndex: "asc" },
+        take: 8,
+      }),
+    ]);
+
+    res.json({
+      recentProjects: workspace.projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        status: p.status,
+        updatedAt: p.updatedAt.toISOString(),
+      })),
+      sharedWithMe: sharedProjects.map((m) => ({
+        id: m.project.id,
+        name: m.project.name,
+        type: m.project.type,
+        role: m.role,
+        ownerWorkspace: m.project.workspace?.companyName ?? "Workspace",
+        updatedAt: m.project.updatedAt.toISOString(),
+      })),
+      recommendedTemplates: templates.map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        name: t.name,
+        description: t.description,
+        type: t.type,
+      })),
+    });
+  } catch (err) {
+    console.error("[workspace/home]", err);
+    res.status(500).json({ error: "Failed to load workspace home" });
   }
-
-  const sharedProjects = await prisma.projectMember.findMany({
-    where: { userId, role: { not: "owner" } },
-    include: { project: { include: { workspace: { select: { companyName: true } } } } },
-    orderBy: { joinedAt: "desc" },
-    take: 5,
-  });
-
-  const templates = await prisma.workspaceTemplate.findMany({
-    orderBy: { orderIndex: "asc" },
-    take: 8,
-  });
-
-  res.json({
-    recentProjects: workspace.projects.map((p) => ({
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      status: p.status,
-      updatedAt: p.updatedAt.toISOString(),
-    })),
-    sharedWithMe: sharedProjects.map((m) => ({
-      id: m.project.id,
-      name: m.project.name,
-      type: m.project.type,
-      role: m.role,
-      ownerWorkspace: m.project.workspace?.companyName ?? "Workspace",
-      updatedAt: m.project.updatedAt.toISOString(),
-    })),
-    recommendedTemplates: templates.map((t) => ({
-      id: t.id,
-      slug: t.slug,
-      name: t.name,
-      description: t.description,
-      type: t.type,
-    })),
-  });
-});
+}));
 
 /** GET /workspace/templates – list all templates */
 router.get("/templates", async (req: Request, res: Response): Promise<void> => {
@@ -150,11 +157,7 @@ router.patch(
     body("brandingSettings").optional().isObject(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const userId = req.user.userId;
 
@@ -244,11 +247,7 @@ router.post(
     body("metadata").optional().isObject(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const userId = req.user.userId;
 
@@ -289,11 +288,7 @@ router.get(
   "/projects/:projectId",
   param("projectId").isString().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access) {
@@ -327,11 +322,7 @@ router.patch(
   param("projectId").isString().notEmpty(),
   [body("name").optional().isString().trim(), body("status").optional().isIn(["draft", "in_progress", "completed"]), body("metadata").optional().isObject()],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -426,11 +417,7 @@ router.post(
     body("frameId").optional().isString(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -485,11 +472,7 @@ router.patch(
     body("frameId").optional().isString(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -594,11 +577,7 @@ router.post(
     body("folderPath").optional().isString(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -698,11 +677,7 @@ router.post(
     body("positionY").optional().isFloat(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -737,11 +712,7 @@ router.post(
   param("projectId").isString().notEmpty(),
   [body("fromNodeId").isString().notEmpty(), body("toNodeId").isString().notEmpty()],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -799,11 +770,7 @@ router.post(
   param("projectId").isString().notEmpty(),
   [body("title").isString().trim().notEmpty(), body("body").isString()],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {
@@ -841,11 +808,7 @@ router.patch(
   param("noteId").isString().notEmpty(),
   [body("title").optional().isString().trim(), body("body").optional().isString()],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const access = await getProjectWithAccess(req.params.projectId, req.user.userId);
     if (!access || !canEdit(access.role)) {

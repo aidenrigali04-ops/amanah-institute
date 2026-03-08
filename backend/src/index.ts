@@ -82,9 +82,10 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// Error handler
+// Error handler (must have 4 args so Express treats it as error middleware)
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
+  if (res.headersSent) return;
+  console.error("[Amanah API] Error:", err?.message ?? err);
   res.status(500).json({ error: "Internal server error" });
 });
 

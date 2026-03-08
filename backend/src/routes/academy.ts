@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
-import { body, param, validationResult } from "express-validator";
+import { body, param } from "express-validator";
 import { authMiddleware } from "../middleware/auth.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import { prisma } from "../lib/prisma.js";
+import { validateRequest } from "../lib/validation.js";
 import { recordAcademyActivity } from "../services/academyStreak.js";
 import {
   PATHWAY_LABELS,
@@ -229,10 +231,10 @@ router.get("/home", authMiddleware, async (req: Request, res: Response): Promise
 });
 
 /** GET /academy/dashboard – 7-section academy dashboard (Continue, Pathway Progress, Recommended Course, Workspace Task, Weekly Quiz, Community, Tool Updates) */
-router.get("/dashboard", authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.get("/dashboard", authMiddleware, asyncHandler(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) return;
   const userId = req.user.userId;
-
+  try {
   const [modules, progressList, userBadges, user, allLessons, pathways, courseProgressList, toolReleases] = await Promise.all([
     prisma.academyModule.findMany({
       orderBy: { orderIndex: "asc" },
@@ -344,7 +346,11 @@ router.get("/dashboard", authMiddleware, async (req: Request, res: Response): Pr
     })),
     recentBadges: userBadges.map((ub) => ({ ...ub.badge, earnedAt: ub.earnedAt })),
   });
-});
+  } catch (err) {
+    console.error("[academy/dashboard]", err);
+    res.status(500).json({ error: "Failed to load dashboard" });
+  }
+}));
 
 /** POST /academy/check-in – weekly builder check-in (accountability) */
 router.post(
@@ -357,11 +363,7 @@ router.post(
     body("notes").optional().trim(),
   ],
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const userId = req.user.userId;
     const weekStart = getWeekStart(new Date());
@@ -471,11 +473,7 @@ router.get(
   authMiddleware,
   param("lessonId").isString().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const { lessonId } = req.params;
     const userId = req.user.userId;
@@ -532,11 +530,7 @@ router.post(
   authMiddleware,
   param("lessonId").isString().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const { lessonId } = req.params;
     const { progressPercent, completed } = req.body as { progressPercent?: number; completed?: boolean };
@@ -600,11 +594,7 @@ router.post(
   param("lessonId").isString().notEmpty(),
   body("responses").isObject(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const { lessonId } = req.params;
     const { responses } = req.body as { responses: Record<string, string> };
@@ -752,11 +742,7 @@ router.get(
   authMiddleware,
   param("id").isString().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const userId = req.user.userId;
     const courseId = req.params.id;
@@ -845,11 +831,7 @@ router.get(
   authMiddleware,
   param("lessonId").isString().notEmpty(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     const lessonId = req.params.lessonId;
     const quiz = await prisma.lessonQuiz.findUnique({
       where: { lessonId },
@@ -874,11 +856,7 @@ router.post(
   param("lessonId").isString().notEmpty(),
   body("answers").isObject(),
   async (req: Request, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
+    if (!validateRequest(req, res)) return;
     if (!req.user) return;
     const userId = req.user.userId;
     const lessonId = req.params.lessonId;
