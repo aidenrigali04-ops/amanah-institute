@@ -1,0 +1,113 @@
+.acd-page {
+  min-height: 100vh;
+  background: #f0f2f5;
+  padding: 24px;
+}
+
+.acd-loading {
+  padding: 48px;
+  text-align: center;
+  color: #57606a;
+}
+
+.acd-header {
+  max-width: 640px;
+  margin-bottom: 32px;
+}
+
+.acd-back {
+  background: none;
+  border: none;
+  color: #0969da;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.acd-header h1 {
+  font-size: 24px;
+  margin: 0 0 8px;
+  color: #24292f;
+}
+
+.acd-desc {
+  color: #57606a;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.acd-progress-bar {
+  height: 8px;
+  background: #e1e4e8;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.acd-progress-fill {
+  height: 100%;
+  background: #0969da;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.acd-pct {
+  font-size: 13px;
+  color: #57606a;
+  margin: 0 0 16px;
+}
+
+.acd-btn {
+  padding: 10px 24px;
+  background: #0969da;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.acd-modules h2 {
+  font-size: 18px;
+  margin: 0 0 16px;
+  color: #24292f;
+}
+
+.acd-module {
+  background: #fff;
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.acd-module h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: #24292f;
+}
+
+.acd-module ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.acd-module li {
+  margin-bottom: 8px;
+}
+
+.acd-module button {
+  background: none;
+  border: none;
+  color: #0969da;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 0;
+}
+
+.acd-module button:hover {
+  text-decoration: underline;
+}

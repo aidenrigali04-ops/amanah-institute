@@ -1,0 +1,60 @@
+.te-page { min-height: 100vh; background: #fff; color: #1e293b; padding: 24px; }
+.te-loading { padding: 48px; text-align: center; color: #64748b; }
+.te-header { display: flex; align-items: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+.te-stock-title { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 600; }
+.te-logo { font-size: 24px; }
+.te-tabs { display: flex; gap: 8px; }
+.te-tab { padding: 8px 12px; border: none; background: none; color: #64748b; font-size: 14px; cursor: pointer; }
+.te-tab--active { color: #2563eb; border-bottom: 2px solid #2563eb; }
+.te-header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.te-btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 14px; cursor: pointer; }
+.te-btn--outline { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
+.te-icon { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; }
+.te-info-bar { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+.te-price { font-weight: 700; color: #1e293b; margin: 0 8px; }
+.te-pos { color: #22c55e; }
+.te-neg { color: #ef4444; }
+.te-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; margin-bottom: 24px; }
+.te-main { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.te-chart-actions { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+.te-sell-btn { padding: 6px 14px; border-radius: 6px; background: #f1f5f9; color: #64748b; border: none; font-size: 13px; cursor: pointer; }
+.te-buy-btn { padding: 6px 14px; border-radius: 6px; background: #fff; color: #64748b; border: 1px solid #e2e8f0; font-size: 13px; cursor: pointer; }
+.te-buy-btn--active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.te-chart-area { height: 400px; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
+.te-chart-svg { width: 100%; height: 100%; }
+.te-chart-placeholder { font-size: 13px; color: #94a3b8; }
+.te-chart-footer { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-top: 1px solid #e2e8f0; font-size: 13px; }
+.te-range { font-weight: 600; color: #2563eb; }
+.te-share { color: #2563eb; text-decoration: none; margin-left: auto; }
+.te-buy-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; height: fit-content; }
+.te-buy-panel h2 { font-size: 18px; margin: 0 0 20px; display: flex; justify-content: space-between; align-items: center; }
+.te-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+.te-balance { font-size: 14px; margin: 0 0 8px; }
+.te-slider { width: 100%; margin: 0 0 4px; }
+.te-percent { font-size: 12px; color: #64748b; margin: 0 0 12px; }
+.te-investment { font-size: 14px; margin: 0 0 16px; }
+.te-price-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; }
+.te-price-controls { display: flex; align-items: center; gap: 8px; }
+.te-price-controls button { width: 28px; height: 28px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; cursor: pointer; }
+.te-total { font-weight: 600; margin: 0 0 4px; }
+.te-fee { font-size: 13px; color: #64748b; margin: 0 0 16px; }
+.te-submit { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.te-disclaimer { font-size: 11px; color: #64748b; margin: 16px 0 0; }
+.te-disclaimer a { color: #2563eb; }
+.te-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.te-orderbook, .te-peers, .te-cap { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+.te-orderbook h3, .te-peers h3, .te-cap h3 { font-size: 15px; margin: 0 0 12px; }
+.te-chev { color: #64748b; }
+.te-ob-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.te-ob-table th { text-align: left; padding: 8px 0; color: #64748b; font-weight: 500; }
+.te-ob-table td { padding: 6px 0; }
+.te-ask { color: #ef4444; }
+.te-bid { color: #22c55e; }
+.te-peers a { font-size: 12px; color: #2563eb; margin-left: auto; }
+.te-peer-list { list-style: none; margin: 0; padding: 0; }
+.te-peer-list li { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
+.te-peer-ticker { font-weight: 600; min-width: 48px; }
+.te-peer-growth { color: #64748b; flex: 1; }
+.te-cap-currency { font-size: 12px; color: #64748b; margin: 0 0 12px; }
+.te-cap-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.te-cap-list li { padding: 4px 0; }
