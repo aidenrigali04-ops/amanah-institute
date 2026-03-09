@@ -14,6 +14,21 @@ interface Course {
   completionPercent: number;
 }
 
+/** Fallback courses when API returns empty – matches Amanah curriculum */
+const FALLBACK_FEATURED: Course[] = [
+  { id: "fb-1", slug: "entrepreneurship-foundations", title: "Entrepreneurship Foundations", description: null, pathwayName: "Entrepreneurship", moduleCount: 5, estimatedMinutes: 120, completionPercent: 0 },
+  { id: "fb-2", slug: "branding-positioning", title: "Branding & Positioning", description: null, pathwayName: "Entrepreneurship", moduleCount: 5, estimatedMinutes: 90, completionPercent: 0 },
+  { id: "fb-3", slug: "marketing-systems", title: "Marketing Systems", description: null, pathwayName: "Entrepreneurship", moduleCount: 6, estimatedMinutes: 150, completionPercent: 0 },
+];
+
+const FALLBACK_RECOMMENDED: Course[] = [
+  { id: "fb-r1", slug: "entrepreneurship-foundations", title: "Entrepreneurship Foundations", description: null, pathwayName: "Entrepreneurship", moduleCount: 5, estimatedMinutes: 120, completionPercent: 0 },
+  { id: "fb-r2", slug: "customer-market-research", title: "Customer & Market Research", description: null, pathwayName: "Entrepreneurship", moduleCount: 5, estimatedMinutes: 100, completionPercent: 0 },
+  { id: "fb-r3", slug: "branding-positioning", title: "Branding & Positioning", description: null, pathwayName: "Entrepreneurship", moduleCount: 5, estimatedMinutes: 90, completionPercent: 0 },
+  { id: "fb-r4", slug: "marketing-systems", title: "Marketing Systems", description: null, pathwayName: "Entrepreneurship", moduleCount: 6, estimatedMinutes: 150, completionPercent: 0 },
+  { id: "fb-r5", slug: "halal-investing", title: "Halal Investing Principles", description: null, pathwayName: "Trading & Investing", moduleCount: 4, estimatedMinutes: 80, completionPercent: 0 },
+];
+
 export default function BusinessCourses() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -29,16 +44,19 @@ export default function BusinessCourses() {
   useEffect(() => {
     Promise.all([getAcademyCourses(), getAcademyDashboard(), getProfile().catch(() => null)])
       .then(([coursesRes, dash, profile]) => {
-        setCourses((coursesRes as { courses: Course[] }).courses || []);
+        const list = (coursesRes as { courses?: Course[] })?.courses ?? [];
+        setCourses(list.length > 0 ? list : [...FALLBACK_FEATURED, ...FALLBACK_RECOMMENDED]);
         setDashboard(dash);
         setUser(profile || null);
       })
-      .catch(() => {})
+      .catch(() => {
+        setCourses([...FALLBACK_FEATURED, ...FALLBACK_RECOMMENDED]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const featured = courses.slice(0, 3);
-  const recommended = courses.slice(0, 5);
+  const featured = courses.length >= 3 ? courses.slice(0, 3) : FALLBACK_FEATURED;
+  const recommended = courses.length >= 5 ? courses.slice(0, 5) : FALLBACK_RECOMMENDED;
   const filteredRecommended = search.trim()
     ? recommended.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()))
     : recommended;

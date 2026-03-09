@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import DashboardLayout from "./components/DashboardLayout";
 import BusinessCourses from "./pages/BusinessCourses";
 import AcademyCourseDetail from "./pages/AcademyCourseDetail";
 import TradingOverview from "./pages/TradingOverview";
@@ -22,18 +23,20 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/academy" replace />} />
-        <Route path="/academy" element={<BusinessCourses />} />
-        <Route path="/academy/courses" element={<BusinessCourses />} />
-        <Route path="/academy/course/:id" element={<AcademyCourseDetail />} />
-        <Route path="/academy/lessons/:id" element={<AcademyLessonView />} />
         <Route path="/login" element={<Placeholder title="Login" />} />
         <Route path="/register" element={<Placeholder title="Register" />} />
-        <Route path="/dashboard" element={<TradingOverview />} />
-        <Route path="/payout" element={<Payout />} />
-        <Route path="/home" element={<HomeOverview />} />
-        <Route path="/invest" element={<StocksScreener />} />
-        <Route path="/invest/trade" element={<TradingExecution />} />
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/academy" replace />} />
+          <Route path="academy" element={<BusinessCourses />} />
+          <Route path="academy/courses" element={<BusinessCourses />} />
+          <Route path="academy/course/:id" element={<AcademyCourseDetail />} />
+          <Route path="academy/lessons/:id" element={<AcademyLessonView />} />
+          <Route path="dashboard" element={<TradingOverview />} />
+          <Route path="payout" element={<Payout />} />
+          <Route path="home" element={<HomeOverview />} />
+          <Route path="invest" element={<StocksScreener />} />
+          <Route path="invest/trade" element={<TradingExecution />} />
+        </Route>
         <Route path="*" element={<Placeholder />} />
       </Routes>
     </BrowserRouter>

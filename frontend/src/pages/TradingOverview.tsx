@@ -90,7 +90,7 @@ export default function TradingOverview() {
             </div>
             <div className="to-donut-legend">
               {assetAllocation.slice(0, 4).map((a, i) => (
-                <span key={a.name} className="to-legend-dot" style={{ background: ["#f59e0b", "#3b82f6", "#8b5cf6", "#1e3a8a"][i] }} />)
+                <span key={a.name} className="to-legend-dot" style={{ background: ["#00bf63", "#009952", "#00d96e", "#008f4a"][i] }} />)
               )}
               {["Ethereum", "Cardano", "Solana", "Bitcoin"].slice(0, assetAllocation.length).map((l, i) => (
                 <span key={i}>{assetAllocation[i]?.name || l}</span>

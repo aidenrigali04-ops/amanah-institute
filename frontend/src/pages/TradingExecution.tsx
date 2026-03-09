@@ -109,7 +109,7 @@ export default function TradingExecution() {
                   const range = max - min || 1;
                   const w = 400; const h = 200; const pad = 4;
                   const points = closes.map((c, i) => `${(i / (closes.length - 1 || 1)) * (w - pad * 2) + pad},${h - pad - ((c - min) / range) * (h - pad * 2)}`).join(" ");
-                  return <polyline fill="none" stroke="#2563eb" strokeWidth="2" points={points} />;
+                  return <polyline fill="none" stroke="#00bf63" strokeWidth="2" points={points} />;
                 })()}
               </svg>
             ) : (

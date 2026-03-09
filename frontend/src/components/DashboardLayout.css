@@ -1,0 +1,54 @@
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.dl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.dl-logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00bf63;
+  text-decoration: none;
+}
+
+.dl-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dl-link {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+}
+
+.dl-link:hover {
+  color: #00bf63;
+  background: rgba(0, 191, 99, 0.08);
+}
+
+.dl-link--active {
+  color: #00bf63;
+  background: rgba(0, 191, 99, 0.12);
+}
+
+.dl-main {
+  flex: 1;
+  overflow: auto;
+}

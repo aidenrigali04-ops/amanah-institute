@@ -13,7 +13,7 @@
 .ss-ticker { display: flex; gap: 24px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 .ss-ticker-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .ss-ticker-sym { font-weight: 600; }
-.ss-pos { color: #22c55e; }
+.ss-pos { color: #00bf63; }
 .ss-neg { color: #ef4444; }
 .ss-title { font-size: 28px; font-weight: 700; margin: 0 0 4px; }
 .ss-subtitle { color: #64748b; font-size: 14px; margin: 0 0 24px; }

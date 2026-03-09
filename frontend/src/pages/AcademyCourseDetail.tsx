@@ -20,13 +20,21 @@ export default function AcademyCourseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [course, setCourse] = useState<{ id: string; title: string; description: string | null; modules: Module[]; completionPercent: number } | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    getAcademyCourse(id).then(setCourse).catch(() => setCourse(null));
+    setFailed(false);
+    getAcademyCourse(id).then((c) => { setCourse(c); setFailed(false); }).catch(() => { setCourse(null); setFailed(true); });
   }, [id]);
 
-  if (!course) return <div className="acd-page"><div className="acd-loading">Loading…</div></div>;
+  if (!course && !failed) return <div className="acd-page"><div className="acd-loading">Loading…</div></div>;
+  if (failed || !course) return (
+    <div className="acd-page">
+      <p className="acd-loading">Course not found or not available yet.</p>
+      <button type="button" className="acd-back" onClick={() => navigate("/academy")}>← Back to Academy</button>
+    </div>
+  );
 
   const firstLesson = course.modules[0]?.lessons[0];
   const firstIncomplete = course.modules.flatMap((m) => m.lessons).find((l) => !l.completedAt);
